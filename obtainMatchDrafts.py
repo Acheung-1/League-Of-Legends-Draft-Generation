@@ -356,3 +356,28 @@ Id_to_Champion = {
     99:"Lux",
 }
 
+def get_league_leaderboard_url(riot_api_key,region,league,queue_type):
+    '''
+    riot_api_key (input) - string:     riot api key from developer portal
+    region (input) - string:           (na1,br1,eun1,euw1,jp1,kr,la1,la2,me1,oc1,ru,sg2,tr1,tw2,vn2)
+    league (input) - string:           (challengerleagues,grandmasterleagues,masterleagues)
+    queue_type (input) - string:       (ranked_solo_5x5,ranked_solo_sr,ranked_solo_tt)
+    '''
+    return f'https://{region}.api.riotgames.com/lol/league/v4/{league}/by-queue/{queue_type}?api_key={riot_api_key}'
+def get_matches_from_puuid_url(riot_api_key,region,player_puuid,match_type="ranked",num_matches=5):
+    '''
+    riot_api_key (input) - string:     riot api key from developer portal
+    region (input) - string:           (americas,asia,europe,sea)
+    player_puuid (input) - string:     player puuid
+    match_type (input) - string:       (ranked,normal,tourney,tutorial)
+                                       Filter the list of match ids by the type of match. This filter is mutually inclusive of the queue filter meaning any match ids returned must match both the queue and type filters.
+    num_matches (input) - int:         Defaults to 20. Valid values: 0 to 100. Number of match ids to return.
+    '''
+    return f'https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{player_puuid}/ids?type={match_type}&start=0&count={num_matches}&api_key={riot_api_key}'
+def get_match_data_from_match_id_url(riot_api_key,region,match_id):
+    '''
+    riot_api_key (input) - string:     riot api key from developer portal
+    region (input) - string:           (americas,asia,europe,sea)
+    match_id (input) - string:         (challengerleagues,grandmasterleagues,masterleagues)
+    '''
+    return f'https://{region}.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={riot_api_key}'
