@@ -364,6 +364,7 @@ def get_league_leaderboard_url(riot_api_key,region,league,queue_type):
     queue_type (input) - string:       (ranked_solo_5x5,ranked_solo_sr,ranked_solo_tt)
     '''
     return f'https://{region}.api.riotgames.com/lol/league/v4/{league}/by-queue/{queue_type}?api_key={riot_api_key}'
+
 def get_matches_from_puuid_url(riot_api_key,region,player_puuid,match_type="ranked",num_matches=5):
     '''
     riot_api_key (input) - string:     riot api key from developer portal
@@ -374,6 +375,7 @@ def get_matches_from_puuid_url(riot_api_key,region,player_puuid,match_type="rank
     num_matches (input) - int:         Defaults to 20. Valid values: 0 to 100. Number of match ids to return.
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{player_puuid}/ids?type={match_type}&start=0&count={num_matches}&api_key={riot_api_key}'
+
 def get_match_data_from_match_id_url(riot_api_key,region,match_id):
     '''
     riot_api_key (input) - string:     riot api key from developer portal
@@ -381,3 +383,48 @@ def get_match_data_from_match_id_url(riot_api_key,region,match_id):
     match_id (input) - string:         (challengerleagues,grandmasterleagues,masterleagues)
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={riot_api_key}'
+
+def try_request(api_url,description):
+    '''
+    api_url (input) - string:          api url to get response from
+    description (input) - string:      For help text to describe what this request is for
+    '''
+    retry_count = 0
+    max_retries = 10
+
+    while retry_count <= max_retries:
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            response_json = response.json()
+            return response_json  
+        elif response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 10))
+            print(f"Rate limited. Sleeping for {retry_after} seconds...")
+            time.sleep(retry_after)
+            retry_count += 1
+        else:
+            print(f'Failed to fetch {description}: HTTP {response.status_code}')
+            break  
+    return None
+
+def append_to_df(df_to_append,file_path):
+    '''
+    df_to_append (input) - string:     dataframe to append
+    file_path (input) - string:        file path to save dataframe to
+    '''
+    if os.path.exists(file_path):
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            existing_df = pd.read_excel(file_path)
+            startrow = existing_df.shape[0] + 1 
+            df_to_append.to_excel(writer, index=False, header=False, startrow=startrow)
+    else:
+        df_to_append.to_excel(file_path, index=False)
+    return 
+
+def append_to_txt(item,file_path):
+    '''
+    item (input) - string:             item to append
+    file_path (input) - string:        file path to save item to
+    '''
+    with open(file_path, 'a') as f:
+        f.write(str(item) + '\n')
