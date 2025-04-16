@@ -463,3 +463,37 @@ def configure_leaderboard(leaderboard):
     leaderboard = leaderboard.rename(columns={'index':'rank'})
     leaderboard['rank'] += 1
     return leaderboard
+
+def collect_all_matches(riot_api_key=None,leaderboard_df=None,region=None,match_type='ranked',number_matches=5,file_path="matches_df.xlsx"):
+    '''
+    riot_api_key (input) - string:     item to append
+    leaderboard (input) - dataframe:   leaderboard of players that contain player puuid to collect matches from
+    match_type (input) - string:       only collect matches of this type
+    number_matches (input) - int:      number of matches to collect from each player in the leaderboard
+    file_path (input) - string:        file path to save leaderboard dataframe
+    '''
+    all_match_ids = set()
+    count = 0
+    for puuid in leaderboard_df['puuid']:
+        matches = collect_matches_from_player(riot_api_key,region,puuid,match_type,number_matches)
+
+        for match_id in matches:
+            if match_id not in all_match_ids:
+                count += 1
+                print(f"match_id count: {count}")
+                append_to_txt(match_id,file_path)
+
+        all_match_ids = all_match_ids.union(matches)
+
+
+    return all_match_ids
+
+def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_type='ranked',num_matches=5):
+    match_ids = set()
+    matches_api_url = get_matches_from_puuid_url(riot_api_key,region,puuid,match_type,num_matches)
+
+    response = try_request(matches_api_url,"matches from player")
+    if response:
+        match_ids.update(response)
+            
+    return match_ids
