@@ -428,3 +428,38 @@ def append_to_txt(item,file_path):
     '''
     with open(file_path, 'a') as f:
         f.write(str(item) + '\n')
+    return
+
+def grab_leaderboard(riot_api_key=None,count=None,queue_type='RANKED_SOLO_5x5',region="na1",leagues=['challengerleagues','grandmasterleagues','masterleagues'],file_path=f"leaderboard_df.xlsx"):
+    '''
+    riot_api_key (input) - string:     item to append
+    count (input) - int:               file path to save item to
+    region (input) - string:           region
+    leagues (input) - list(string):    list of leagues
+    file_path (input) - string:        file path to save leaderboard dataframe
+    '''
+    for league in leagues:
+        players_api_url = get_league_leaderboard_url(riot_api_key,region,league,queue_type)
+        
+        response = try_request(players_api_url,"players from leaderboard")
+            
+        if response:  
+            leaderboard_df = pd.DataFrame(response.get('entries', []))
+            leaderboard_df = configure_leaderboard(leaderboard_df)
+            append_to_df(leaderboard_df,file_path)
+            
+        if count and len(leaderboard_df) > count:
+            break
+        
+    return leaderboard_df.head(count) if count else leaderboard_df
+
+def configure_leaderboard(leaderboard):
+    '''
+    leaderboard (input) - string:      leaderboard to make edits to columns
+    '''
+    leaderboard = leaderboard.sort_values('leaguePoints',ascending=False)
+    leaderboard = leaderboard.drop(columns=['rank','veteran','inactive','freshBlood'])
+    leaderboard = leaderboard.reset_index()
+    leaderboard = leaderboard.rename(columns={'index':'rank'})
+    leaderboard['rank'] += 1
+    return leaderboard
