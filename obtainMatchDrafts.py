@@ -358,29 +358,45 @@ Id_to_Champion = {
 
 def get_league_leaderboard_url(riot_api_key,region,league,queue_type):
     '''
-    riot_api_key (input) - string:     riot api key from developer portal
-    region (input) - string:           (na1,br1,eun1,euw1,jp1,kr,la1,la2,me1,oc1,ru,sg2,tr1,tw2,vn2)
-    league (input) - string:           (challengerleagues,grandmasterleagues,masterleagues)
-    queue_type (input) - string:       (ranked_solo_5x5,ranked_solo_sr,ranked_solo_tt)
+    DESCRIPTION:
+        Obtain leaderboard API URL based on the region, league, and queue type
+    
+    INPUTS:
+        riot_api_key (str):     riot api key from developer portal
+        region (str):           na1,br1,eun1,euw1,jp1,kr,la1,la2,me1,oc1,ru,sg2,tr1,tw2,vn2
+        league (str):           challengerleagues,grandmasterleagues,masterleagues
+        queue_type (str):       ranked_solo_5x5,ranked_solo_sr,ranked_solo_tt
+    OUTPUTS:
+        URL (str):              url for API request to get leaderboard 
     '''
     return f'https://{region}.api.riotgames.com/lol/league/v4/{league}/by-queue/{queue_type}?api_key={riot_api_key}'
 
 def get_matches_from_puuid_url(riot_api_key,region,player_puuid,match_type="ranked",num_matches=5):
     '''
-    riot_api_key (input) - string:     riot api key from developer portal
-    region (input) - string:           (americas,asia,europe,sea)
-    player_puuid (input) - string:     player puuid
-    match_type (input) - string:       (ranked,normal,tourney,tutorial)
-                                       Filter the list of match ids by the type of match. This filter is mutually inclusive of the queue filter meaning any match ids returned must match both the queue and type filters.
-    num_matches (input) - int:         Defaults to 20. Valid values: 0 to 100. Number of match ids to return.
+    DESCRIPTION:
+        Obtain # of matches from player API URL based on the region, player, match type, and queue type
+    INPUTS:
+        riot_api_key (str):     riot api key from developer portal
+        region (str):           (americas,asia,europe,sea)
+        player_puuid (str):     player puuid
+        match_type (str):       (ranked,normal,tourney,tutorial)
+                                Filter the list of match ids by the type of match. This filter is mutually inclusive of the queue filter meaning any match ids returned must match both the queue and type filters.
+        num_matches (int):      Defaults to 20. Valid values: 0 to 100. Number of match ids to return.
+    OUTPUTS:
+        URL (str):              url for API request to get match IDs from player 
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{player_puuid}/ids?type={match_type}&start=0&count={num_matches}&api_key={riot_api_key}'
 
 def get_match_data_from_match_id_url(riot_api_key,region,match_id):
     '''
-    riot_api_key (input) - string:     riot api key from developer portal
-    region (input) - string:           (americas,asia,europe,sea)
-    match_id (input) - string:         (challengerleagues,grandmasterleagues,masterleagues)
+    DESCRIPTION:
+        Obtain # of matches from player API URL based on the region, player, match type, and queue type
+    INPUTS:
+        riot_api_key (input) - string:     riot api key from developer portal
+        region (input) - string:           (americas,asia,europe,sea)
+        match_id (input) - string:         (challengerleagues,grandmasterleagues,masterleagues)
+    OUTPUTS:
+        URL (str):              url for API request to get match IDs from player 
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={riot_api_key}'
 
@@ -421,6 +437,13 @@ def append_to_df(df_to_append,file_path):
         df_to_append.to_excel(file_path, index=False)
     return 
 
+def read_txt_to_set(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return {line.strip() for line in f if line.strip()}
+    except FileNotFoundError:
+        return set()
+
 def append_to_txt(item,file_path):
     '''
     item (input) - string:             item to append
@@ -439,14 +462,14 @@ def grab_leaderboard(riot_api_key=None,count=None,queue_type='RANKED_SOLO_5x5',r
     file_path (input) - string:        file path to save leaderboard dataframe
     '''
     for league in leagues:
-        players_api_url = get_league_leaderboard_url(riot_api_key,region,league,queue_type)
+        players_api_url = get_league_leaderboard_url(riot_api_key,league,queue_type)
         
         response = try_request(players_api_url,"players from leaderboard")
             
         if response:  
             leaderboard_df = pd.DataFrame(response.get('entries', []))
             leaderboard_df = configure_leaderboard(leaderboard_df)
-            append_to_df(leaderboard_df,file_path)
+            leaderboard_df.to_csv(file_path, mode='a', sep='\t', header=True, index=False)
             
         if count and len(leaderboard_df) > count:
             break
@@ -463,6 +486,30 @@ def configure_leaderboard(leaderboard):
     leaderboard = leaderboard.rename(columns={'index':'rank'})
     leaderboard['rank'] += 1
     return leaderboard
+
+def collect_all_matches(riot_api_key=None,leaderboard_df=None,match_type='ranked',number_matches=5,file_path_for_processed_players="processedPlayerPUUIDs.xlsx",file_path_for_match_ids="matches_df.xlsx"):
+    all_match_ids = read_txt_to_set(file_path_for_match_ids)
+    processed_players = read_txt_to_set(file_path_for_processed_players)
+    count_match = 0
+    count_player = len(processed_players)
+    for puuid in leaderboard_df['puuid']:
+        if puuid in processed_players:
+            continue
+        matches = collect_matches_from_player(riot_api_key,puuid,match_type,number_matches)
+
+        for match_id in matches:
+            if match_id not in all_match_ids:
+                count_match += 1
+                print(f"match_id count: {count_match}")
+                append_to_txt(match_id,file_path_for_match_ids)
+
+        all_match_ids.update(matches)
+        count_player += 1
+        print(f"\n player count: {count_player}\n")
+        append_to_txt(puuid,file_path_for_processed_players)
+        processed_players.add(puuid)
+
+    return all_match_ids
 
 def collect_all_matches(riot_api_key=None,leaderboard_df=None,region=None,match_type='ranked',number_matches=5,file_path="matches_df.xlsx"):
     '''
