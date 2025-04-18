@@ -366,47 +366,57 @@ def get_league_leaderboard_url(riot_api_key,region,league,queue_type):
         region (str):           na1,br1,eun1,euw1,jp1,kr,la1,la2,me1,oc1,ru,sg2,tr1,tw2,vn2
         league (str):           challengerleagues,grandmasterleagues,masterleagues
         queue_type (str):       ranked_solo_5x5,ranked_solo_sr,ranked_solo_tt
+    
     OUTPUTS:
-        URL (str):              url for API request to get leaderboard 
+        URL (str):              URL for API request to get leaderboard 
     '''
     return f'https://{region}.api.riotgames.com/lol/league/v4/{league}/by-queue/{queue_type}?api_key={riot_api_key}'
 
 def get_matches_from_puuid_url(riot_api_key,region,player_puuid,match_type="ranked",num_matches=5):
     '''
     DESCRIPTION:
-        Obtain # of matches from player API URL based on the region, player, match type, and queue type
+        Obtain # of match ids from player API URL based on the region, player, match type, and queue type
+    
     INPUTS:
         riot_api_key (str):     riot api key from developer portal
-        region (str):           (americas,asia,europe,sea)
+        region (str):           americas,asia,europe,sea
         player_puuid (str):     player puuid
-        match_type (str):       (ranked,normal,tourney,tutorial)
+        match_type (str):       ranked,normal,tourney,tutorial
                                 Filter the list of match ids by the type of match. This filter is mutually inclusive of the queue filter meaning any match ids returned must match both the queue and type filters.
         num_matches (int):      Defaults to 20. Valid values: 0 to 100. Number of match ids to return.
+    
     OUTPUTS:
-        URL (str):              url for API request to get match IDs from player 
+        URL (str):              URL for API request to get match IDs from player 
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{player_puuid}/ids?type={match_type}&start=0&count={num_matches}&api_key={riot_api_key}'
 
 def get_match_data_from_match_id_url(riot_api_key,region,match_id):
     '''
     DESCRIPTION:
-        Obtain # of matches from player API URL based on the region, player, match type, and queue type
+        Obtain match data from match id API URL based on the region and match id
+    
     INPUTS:
-        riot_api_key (input) - string:     riot api key from developer portal
-        region (input) - string:           (americas,asia,europe,sea)
-        match_id (input) - string:         (challengerleagues,grandmasterleagues,masterleagues)
+        riot_api_key (str):     riot api key from developer portal
+        region (str):           americas,asia,europe,sea
+        match_id (str):         challengerleagues,grandmasterleagues,masterleagues
+    
     OUTPUTS:
-        URL (str):              url for API request to get match IDs from player 
+        URL (str):              URL for API request to get match IDs from player 
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={riot_api_key}'
 
-def try_request(api_url,description):
+def try_request(api_url,description,retry_after):
     '''
-    api_url (input) - string:          api url to get response from
-    description (input) - string:      For help text to describe what this request is for
+    DESCRIPTION:
+        This is what this function does
+    
+    INPUTS:
+        api_url (str):          API IRL to get response from
+        description (str):      For help text to describe what this request is for
+        retry_after (int):      Number of seconds to retry the request
     '''
     retry_count = 0
-    max_retries = 10
+    max_retries = 20
 
     while retry_count <= max_retries:
         response = requests.get(api_url)
@@ -414,8 +424,7 @@ def try_request(api_url,description):
             response_json = response.json()
             return response_json  
         elif response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", 10))
-            print(f"Rate limited. Sleeping for {retry_after} seconds...")
+            print(f"Rate limited. Sleeping for {retry_after} seconds. Retry count: {retry_count}")
             time.sleep(retry_after)
             retry_count += 1
         else:
@@ -423,21 +432,17 @@ def try_request(api_url,description):
             break  
     return None
 
-def append_to_df(df_to_append,file_path):
-    '''
-    df_to_append (input) - string:     dataframe to append
-    file_path (input) - string:        file path to save dataframe to
-    '''
-    if os.path.exists(file_path):
-        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-            existing_df = pd.read_excel(file_path)
-            startrow = existing_df.shape[0] + 1 
-            df_to_append.to_excel(writer, index=False, header=False, startrow=startrow)
-    else:
-        df_to_append.to_excel(file_path, index=False)
-    return 
-
 def read_txt_to_set(file_path):
+    '''
+    DESCRIPTION:
+        Reads txt file and return a set 
+    
+    INPUTS:
+        file_path (str):        File path to txt file
+    
+    OUTPUTS:
+        Output (set):           Set containing a read of each line in txt or empty set
+    '''
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return {line.strip() for line in f if line.strip()}
@@ -446,8 +451,12 @@ def read_txt_to_set(file_path):
 
 def append_to_txt(item,file_path):
     '''
-    item (input) - string:             item to append
-    file_path (input) - string:        file path to save item to
+    DESCRIPTION:
+        Appends a string to a txt file 
+    
+    INPUTS:
+        Item (str):             Item to append to txt file
+        file_path (str):        File path to txt file
     '''
     with open(file_path, 'a') as f:
         f.write(str(item) + '\n')
@@ -455,16 +464,23 @@ def append_to_txt(item,file_path):
 
 def grab_leaderboard(riot_api_key=None,count=None,queue_type='RANKED_SOLO_5x5',region="na1",leagues=['challengerleagues','grandmasterleagues','masterleagues'],file_path=f"leaderboard_df.xlsx"):
     '''
-    riot_api_key (input) - string:     item to append
-    count (input) - int:               file path to save item to
-    region (input) - string:           region
-    leagues (input) - list(string):    list of leagues
-    file_path (input) - string:        file path to save leaderboard dataframe
+    DESCRIPTION:
+        Grabs top x amount of players and returns a configured df with columns "rank","summonerId","puuid","leaguePoints","wins","losses","hotStreak"
+    
+    INPUTS:
+        riot_api_key (str):     riot api key from developer portal
+        count (int):            Number of players from the top to grab
+        region (str):           na1,br1,eun1,euw1,jp1,kr,la1,la2,me1,oc1,ru,sg2,tr1,tw2,vn2
+        leagues (list(str)):    challengerleagues,grandmasterleagues,masterleagues
+        file_path (str):        File path to txt save leaderboard dataframe
+    
+    OUTPUTS:
+        Output (type):          Configured leaderboard df
     '''
     for league in leagues:
-        players_api_url = get_league_leaderboard_url(riot_api_key,league,queue_type)
+        players_api_url = get_league_leaderboard_url(riot_api_key,region,league,queue_type)
         
-        response = try_request(players_api_url,"players from leaderboard")
+        response = try_request(players_api_url,"players from leaderboard",10)
             
         if response:  
             leaderboard_df = pd.DataFrame(response.get('entries', []))
@@ -477,6 +493,17 @@ def grab_leaderboard(riot_api_key=None,count=None,queue_type='RANKED_SOLO_5x5',r
     return leaderboard_df.head(count) if count else leaderboard_df
 
 def configure_leaderboard(leaderboard):
+    '''
+    DESCRIPTION:
+        Removes 'rank','veteran','inactive','freshBlood' from the response json
+        Return df with columns of 'rank','summonerId','puuid','leaguePoints','wins','losses','hotStreak'
+    
+    INPUTS:
+        leaderboard (df):          dataframe containing top players
+    
+    OUTPUTS:
+        leaderboard (df):          dataframe containing top players
+    '''
     '''
     leaderboard (input) - string:      leaderboard to make edits to columns
     '''
@@ -522,41 +549,28 @@ def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_t
     match_ids = set()
     matches_api_url = get_matches_from_puuid_url(riot_api_key,region,puuid,match_type,num_matches)
 
-    response = try_request(matches_api_url,"matches from player")
+    response = try_request(matches_api_url,"matches from player",10)
     if response:
         match_ids.update(response)
             
     return match_ids
 
-def obtain_match_data(riot_api_key,all_match_ids,file_path_for_processed_matches,file_path_for_data):
+def obtain_match_data(riot_api_key,all_match_ids,region,file_path_for_processed_matches,file_path_for_data):
     all_proccessed_matches_set = read_txt_to_set(file_path_for_processed_matches)
     
     for match_id in all_match_ids:
         if match_id not in all_proccessed_matches_set:
-            match_json = get_match_json(riot_api_key,match_id)
+            match_json = get_match_json(riot_api_key,region,match_id)
             data = process_match_json_per_team(match_json)
             append_to_txt(data,file_path_for_data)
             append_to_txt(match_id,file_path_for_processed_matches)
             all_proccessed_matches_set.add(match_id)
     return
 
-def obtain_match_data(riot_api_key,all_match_ids,file_path_for_processed_matches,file_path_for_data):
-    all_proccessed_matches_set = read_txt_to_set(file_path_for_processed_matches)
+def get_match_json(riot_api_key,region,match_id):
     
-    for match_id in all_match_ids:
-        if match_id not in all_proccessed_matches_set:
-            match_json = get_match_json(riot_api_key,match_id)
-            data = process_match_json_per_team(match_json)
-            append_to_txt(data,file_path_for_data)
-            append_to_txt(match_id,file_path_for_processed_matches)
-            all_proccessed_matches_set.add(match_id)
-    return
-
-
-def get_match_json(riot_api_key,match_id):
-    
-    match_data_api_url = get_match_data_from_match_id_url(riot_api_key,match_id)
-    response = try_request(match_data_api_url,"match data from match id")
+    match_data_api_url = get_match_data_from_match_id_url(riot_api_key,region,match_id)
+    response = try_request(match_data_api_url,"match data from match id",10)
 
     return response
 
@@ -600,6 +614,8 @@ def main():
     processed_player_puuids_file_path = "processed_player_puuids.txt"
     processed_match_ids_file_path = "processed_match_ids.txt"
     data_file_path = "training_data.txt"
+    region_leaderboard = "kr"
+    region = "asia"
     
     if not os.path.exists(leaderboard_df_file_path):
         open(leaderboard_df_file_path, 'w').close()
@@ -608,11 +624,11 @@ def main():
     if not os.path.exists(processed_player_puuids_file_path):
         open(processed_player_puuids_file_path, 'w').close()
 
-    leaderboard_df = grab_leaderboard(riot_api_key,count=300,queue_type='RANKED_SOLO_5x5',leagues=['challengerleagues','grandmasterleagues'],file_path=leaderboard_df_file_path)
+    leaderboard_df = grab_leaderboard(riot_api_key,count=300,queue_type='RANKED_SOLO_5x5',region=region_leaderboard,leagues=['challengerleagues','grandmasterleagues'],file_path=leaderboard_df_file_path)
 
     all_matches = collect_all_matches(riot_api_key,leaderboard_df,match_type='ranked',number_matches=100,file_path_for_processed_players=processed_player_puuids_file_path,file_path_for_match_ids=all_match_ids_file_path)
 
-    obtain_match_data(riot_api_key,all_matches,processed_match_ids_file_path,file_path_for_data=data_file_path)
+    obtain_match_data(riot_api_key,all_matches,region,processed_match_ids_file_path,file_path_for_data=data_file_path)
         
 
 main()
