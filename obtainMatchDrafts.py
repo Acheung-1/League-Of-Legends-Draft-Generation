@@ -579,6 +579,17 @@ def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_t
     return match_ids
 
 def obtain_match_data(riot_api_key,all_match_ids,region,file_path_for_processed_matches,file_path_for_data):
+    '''
+    DESCRIPTION:
+        Gathers data from each match and stores into a txt file (file_path_for_data)
+    
+    INPUTS:
+        riot_api_key (str):        riot api key from developer portal
+        all_match_ids (set(str)):  set of all match ids to gather data
+        region (str):              americas,asia,europe,sea
+        file_path_for_processed_matches (str):      file path to save processed match ids
+        file_path_for_data (str):                   file path to store data [patch, team1, team2] where team1 is losing team and team2 is winning team
+    '''
     all_proccessed_matches_set = read_txt_to_set(file_path_for_processed_matches)
     
     for match_id in all_match_ids:
@@ -591,6 +602,18 @@ def obtain_match_data(riot_api_key,all_match_ids,region,file_path_for_processed_
     return
 
 def get_match_json(riot_api_key,region,match_id):
+    '''
+    DESCRIPTION:
+        Obtains json of match from riot api
+    
+    INPUTS:
+        riot_api_key (str):        riot api key from developer portal
+        region (str):              americas,asia,europe,sea
+        match_id (type):           Match id
+    
+    OUTPUTS:
+        response (json):           response.json()
+    '''
     
     match_data_api_url = get_match_data_from_match_id_url(riot_api_key,region,match_id)
     response = try_request(match_data_api_url,"match data from match id",10)
@@ -598,6 +621,16 @@ def get_match_json(riot_api_key,region,match_id):
     return response
 
 def process_match_json_per_team(match_json):
+    '''
+    DESCRIPTION:
+        Format's match json into the format [patch, team1, team2] where team1 is losing team and team2 is winning team
+    
+    INPUTS:
+        match_json (json):         match data json
+    
+    OUTPUTS:
+        data (array):              data in array or none 
+    '''
     if not match_json or 'metadata' not in match_json:
         print("Invalid match_json structure:", match_json)
         return None
@@ -608,8 +641,8 @@ def process_match_json_per_team(match_json):
 
 
     data = [patch]
-    team1 = process_player_champion(players,0,4,False)
-    team2 = process_player_champion(players,5,9,False)
+    team1 = process_player_champion_name_to_id(players,0,4,False)
+    team2 = process_player_champion_name_to_id(players,5,9,False)
 
     if players[0]['win']:
         data = data + team2 + team1
@@ -618,7 +651,21 @@ def process_match_json_per_team(match_json):
 
     return data
 
-def process_player_champion(players,start_index,end_index,champion_name):
+def process_player_champion_name_to_id(players,start_index,end_index,champion_name):
+    '''
+    DESCRIPTION:
+        From players json, converts champion name into id if champion_name is True, else obtain champion name
+    
+    INPUTS:
+        players (list(str)):       Array of player puuids
+        start_index (int):         Start index to process
+        end_index (int):           end index from players array
+        champion_name (bool):      True: champion name
+                                   False: champion id
+    
+    OUTPUTS:
+        player_champs (list):      array of player champion name or id
+    '''
     player_champs = []
     
     if not champion_name:
@@ -649,7 +696,7 @@ def main():
 
     leaderboard_df = grab_leaderboard(riot_api_key,count=300,queue_type='RANKED_SOLO_5x5',region=region_leaderboard,leagues=['challengerleagues','grandmasterleagues'],file_path=leaderboard_df_file_path)
 
-    all_matches = collect_all_matches(riot_api_key,leaderboard_df,match_type='ranked',number_matches=100,file_path_for_processed_players=processed_player_puuids_file_path,file_path_for_match_ids=all_match_ids_file_path)
+    all_matches = collect_all_matches(riot_api_key,leaderboard_df,region,match_type='ranked',number_matches=100,file_path_for_processed_players=processed_player_puuids_file_path,file_path_for_match_ids=all_match_ids_file_path)
 
     obtain_match_data(riot_api_key,all_matches,region,processed_match_ids_file_path,file_path_for_data=data_file_path)
         
