@@ -488,6 +488,13 @@ def configure_leaderboard(leaderboard):
     return leaderboard
 
 def collect_all_matches(riot_api_key=None,leaderboard_df=None,match_type='ranked',number_matches=5,file_path_for_processed_players="processedPlayerPUUIDs.xlsx",file_path_for_match_ids="matches_df.xlsx"):
+    '''
+    riot_api_key (input) - string:     item to append
+    leaderboard (input) - dataframe:   leaderboard of players that contain player puuid to collect matches from
+    match_type (input) - string:       only collect matches of this type
+    number_matches (input) - int:      number of matches to collect from each player in the leaderboard
+    file_path (input) - string:        file path to save leaderboard dataframe
+    '''
     all_match_ids = read_txt_to_set(file_path_for_match_ids)
     processed_players = read_txt_to_set(file_path_for_processed_players)
     count_match = 0
@@ -511,30 +518,6 @@ def collect_all_matches(riot_api_key=None,leaderboard_df=None,match_type='ranked
 
     return all_match_ids
 
-def collect_all_matches(riot_api_key=None,leaderboard_df=None,region=None,match_type='ranked',number_matches=5,file_path="matches_df.xlsx"):
-    '''
-    riot_api_key (input) - string:     item to append
-    leaderboard (input) - dataframe:   leaderboard of players that contain player puuid to collect matches from
-    match_type (input) - string:       only collect matches of this type
-    number_matches (input) - int:      number of matches to collect from each player in the leaderboard
-    file_path (input) - string:        file path to save leaderboard dataframe
-    '''
-    all_match_ids = set()
-    count = 0
-    for puuid in leaderboard_df['puuid']:
-        matches = collect_matches_from_player(riot_api_key,region,puuid,match_type,number_matches)
-
-        for match_id in matches:
-            if match_id not in all_match_ids:
-                count += 1
-                print(f"match_id count: {count}")
-                append_to_txt(match_id,file_path)
-
-        all_match_ids = all_match_ids.union(matches)
-
-
-    return all_match_ids
-
 def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_type='ranked',num_matches=5):
     match_ids = set()
     matches_api_url = get_matches_from_puuid_url(riot_api_key,region,puuid,match_type,num_matches)
@@ -544,3 +527,92 @@ def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_t
         match_ids.update(response)
             
     return match_ids
+
+def obtain_match_data(riot_api_key,all_match_ids,file_path_for_processed_matches,file_path_for_data):
+    all_proccessed_matches_set = read_txt_to_set(file_path_for_processed_matches)
+    
+    for match_id in all_match_ids:
+        if match_id not in all_proccessed_matches_set:
+            match_json = get_match_json(riot_api_key,match_id)
+            data = process_match_json_per_team(match_json)
+            append_to_txt(data,file_path_for_data)
+            append_to_txt(match_id,file_path_for_processed_matches)
+            all_proccessed_matches_set.add(match_id)
+    return
+
+def obtain_match_data(riot_api_key,all_match_ids,file_path_for_processed_matches,file_path_for_data):
+    all_proccessed_matches_set = read_txt_to_set(file_path_for_processed_matches)
+    
+    for match_id in all_match_ids:
+        if match_id not in all_proccessed_matches_set:
+            match_json = get_match_json(riot_api_key,match_id)
+            data = process_match_json_per_team(match_json)
+            append_to_txt(data,file_path_for_data)
+            append_to_txt(match_id,file_path_for_processed_matches)
+            all_proccessed_matches_set.add(match_id)
+    return
+
+
+def get_match_json(riot_api_key,match_id):
+    
+    match_data_api_url = get_match_data_from_match_id_url(riot_api_key,match_id)
+    response = try_request(match_data_api_url,"match data from match id")
+
+    return response
+
+def process_match_json_per_team(match_json):
+    if not match_json or 'metadata' not in match_json:
+        print("Invalid match_json structure:", match_json)
+        return None
+    info = match_json['info']
+    players = info['participants']
+    patch = re.match(r"(\d+\.\d+)", info['gameVersion'])
+    patch = int(float(patch.group(1))*100)
+
+
+    data = [patch]
+    team1 = process_player_champion(players,0,4,False)
+    team2 = process_player_champion(players,5,9,False)
+
+    if players[0]['win']:
+        data = data + team2 + team1
+    else:
+        data = data + team1 + team2
+
+    return data
+
+def process_player_champion(players,start_index,end_index,champion_name):
+    player_champs = []
+    
+    if not champion_name:
+        for i in range(start_index,end_index+1):
+            player_champs.append(players[i]['championId'])
+        return player_champs
+    
+    for i in range(start_index,end_index+1):
+        player_champs.append(Id_to_Champion[players[i]['championId']])
+
+    return player_champs
+
+def main():
+    leaderboard_df_file_path = "leaderboard_df.txt"
+    all_match_ids_file_path = "all_match_ids.txt"
+    processed_player_puuids_file_path = "processed_player_puuids.txt"
+    processed_match_ids_file_path = "processed_match_ids.txt"
+    data_file_path = "training_data.txt"
+    
+    if not os.path.exists(leaderboard_df_file_path):
+        open(leaderboard_df_file_path, 'w').close()
+    if not os.path.exists(all_match_ids_file_path):
+        open(all_match_ids_file_path, 'w').close()
+    if not os.path.exists(processed_player_puuids_file_path):
+        open(processed_player_puuids_file_path, 'w').close()
+
+    leaderboard_df = grab_leaderboard(riot_api_key,count=300,queue_type='RANKED_SOLO_5x5',leagues=['challengerleagues','grandmasterleagues'],file_path=leaderboard_df_file_path)
+
+    all_matches = collect_all_matches(riot_api_key,leaderboard_df,match_type='ranked',number_matches=100,file_path_for_processed_players=processed_player_puuids_file_path,file_path_for_match_ids=all_match_ids_file_path)
+
+    obtain_match_data(riot_api_key,all_matches,processed_match_ids_file_path,file_path_for_data=data_file_path)
+        
+
+main()
