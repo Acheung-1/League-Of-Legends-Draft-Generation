@@ -405,10 +405,10 @@ def get_match_data_from_match_id_url(riot_api_key,region,match_id):
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={riot_api_key}'
 
-def try_request(api_url,description,retry_after):
+def try_request(api_url,description,seconds_to_retry):
     '''
     DESCRIPTION:
-        This is what this function does
+        Tries to get a response from a get request, will retry up to 20 times with 
     
     INPUTS:
         api_url (str):          API IRL to get response from
@@ -419,17 +419,24 @@ def try_request(api_url,description,retry_after):
     max_retries = 20
 
     while retry_count <= max_retries:
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            response_json = response.json()
-            return response_json  
-        elif response.status_code == 429:
-            print(f"Rate limited. Sleeping for {retry_after} seconds. Retry count: {retry_count}")
-            time.sleep(retry_after)
-            retry_count += 1
-        else:
-            print(f'Failed to fetch {description}: HTTP {response.status_code}')
-            break  
+        try:
+            response = requests.get(api_url, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:
+                print(f"Rate limited. Sleeping for {seconds_to_retry} seconds. Retry count: {retry_count}")
+                time.sleep(seconds_to_retry)
+            else:
+                print(f"Failed to fetch {description}: HTTP {response.status_code}")
+                break
+        except requests.exceptions.Timeout:
+            print(f"Timeout occurred while fetching {description}. Retrying...")
+        except requests.exceptions.RequestException as e:
+            print(f"Request error for {description}: {e}")
+            break 
+        
+        retry_count += 1
+        time.sleep(1)  # brief pause before retrying
     return None
 
 def read_txt_to_set(file_path):
