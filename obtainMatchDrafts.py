@@ -441,7 +441,7 @@ def read_txt_to_set(file_path):
         file_path (str):        File path to txt file
     
     OUTPUTS:
-        Output (set):           Set containing a read of each line in txt or empty set
+        Output (set(str)):           Set containing a read of each line in txt or empty set
     '''
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -514,13 +514,22 @@ def configure_leaderboard(leaderboard):
     leaderboard['rank'] += 1
     return leaderboard
 
-def collect_all_matches(riot_api_key=None,leaderboard_df=None,match_type='ranked',number_matches=5,file_path_for_processed_players="processedPlayerPUUIDs.xlsx",file_path_for_match_ids="matches_df.xlsx"):
+def collect_all_matches(riot_api_key=None,leaderboard_df=None,region=None,match_type='ranked',number_matches=5,file_path_for_processed_players="processedPlayerPUUIDs.xlsx",file_path_for_match_ids="matches_df.xlsx"):
     '''
-    riot_api_key (input) - string:     item to append
-    leaderboard (input) - dataframe:   leaderboard of players that contain player puuid to collect matches from
-    match_type (input) - string:       only collect matches of this type
-    number_matches (input) - int:      number of matches to collect from each player in the leaderboard
-    file_path (input) - string:        file path to save leaderboard dataframe
+    DESCRIPTION:
+        Grabs top players from leaderboard, collects all unique match ids, and stores into a txt file
+    
+    INPUTS:
+        riot_api_key (str):        riot api key from developer portal
+        leaderboard (df):          leaderboard of players that contain player puuid to collect matches from
+        region (df):               americas,asia,europe,sea
+        match_type (str):          only collect matches of this type (ranked,normal,tourney,tutorial)
+        number_matches (int):      number of matches to collect from each player
+        file_path_for_processed_players (str):      file path to append processed players
+        file_path_for_match_ids (str):              file path to save match ids
+    
+    OUTPUTS:
+        all_match_ids (set(str)):  set containing all unique match ids from all top players
     '''
     all_match_ids = read_txt_to_set(file_path_for_match_ids)
     processed_players = read_txt_to_set(file_path_for_processed_players)
@@ -529,7 +538,7 @@ def collect_all_matches(riot_api_key=None,leaderboard_df=None,match_type='ranked
     for puuid in leaderboard_df['puuid']:
         if puuid in processed_players:
             continue
-        matches = collect_matches_from_player(riot_api_key,puuid,match_type,number_matches)
+        matches = collect_matches_from_player(riot_api_key,region,puuid,match_type,number_matches)
 
         for match_id in matches:
             if match_id not in all_match_ids:
@@ -546,6 +555,20 @@ def collect_all_matches(riot_api_key=None,leaderboard_df=None,match_type='ranked
     return all_match_ids
 
 def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_type='ranked',num_matches=5):
+    '''
+    DESCRIPTION:
+        Collects # of matches from player and stores in a set
+    
+    INPUTS:
+        riot_api_key (str):        riot api key from developer portal
+        region (str):              americas,asia,europe,sea
+        puuid (str):               Unique player puuid
+        match_type (str):          Only collect matches of this type (ranked,normal,tourney,tutorial)
+        num_matches (int):         Number of matches to grab
+    
+    OUTPUTS:
+        match_ids (set(str)):      Set of match ids
+    '''
     match_ids = set()
     matches_api_url = get_matches_from_puuid_url(riot_api_key,region,puuid,match_type,num_matches)
 
