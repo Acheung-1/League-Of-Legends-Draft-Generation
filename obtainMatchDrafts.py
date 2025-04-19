@@ -4,9 +4,6 @@ import time
 import re
 from dotenv import load_dotenv
 import os
-load_dotenv()
-riot_api_key = os.environ.get('riot_api_key')
-
 
 # Dictionaries to translate champion name and ID
 Champion_to_Id = {
@@ -71,7 +68,7 @@ Champion_to_Id = {
     "Tahm Kench":223,
     "Tryndamere":23,
     "Briar":233,
-    "Veigo":234,
+    "Viego":234,
     "Senna":235,
     "Lucian":236,
     "Zed":238,
@@ -244,7 +241,7 @@ Id_to_Champion = {
     223:"Tahm Kench",
     23:"Tryndamere",
     233:"Briar",
-    234:"Veigo",
+    234:"Viego",
     235:"Senna",
     236:"Lucian",
     238:"Zed",
@@ -686,6 +683,11 @@ def process_player_champion_name_to_id(players,start_index,end_index,champion_na
     return player_champs
 
 def main():
+    load_dotenv()
+    riot_api_key = os.environ.get('riot_api_key')
+    if riot_api_key is None:
+        raise ValueError("riot_api_key not found. Make sure your .env file is set correctly.")
+    
     leaderboard_df_file_path = "leaderboard_df.txt"
     all_match_ids_file_path = "all_match_ids.txt"
     processed_player_puuids_file_path = "processed_player_puuids.txt"
@@ -701,9 +703,9 @@ def main():
     if not os.path.exists(processed_player_puuids_file_path):
         open(processed_player_puuids_file_path, 'w').close()
 
-    leaderboard_df = grab_leaderboard(riot_api_key,count=300,queue_type='RANKED_SOLO_5x5',region=region_leaderboard,leagues=['challengerleagues','grandmasterleagues'],file_path=leaderboard_df_file_path)
+    leaderboard_df = grab_leaderboard(riot_api_key,count=5,queue_type='RANKED_SOLO_5x5',region=region_leaderboard,leagues=['challengerleagues','grandmasterleagues'],file_path=leaderboard_df_file_path)
 
-    all_matches = collect_all_matches(riot_api_key,leaderboard_df,region,match_type='ranked',number_matches=100,file_path_for_processed_players=processed_player_puuids_file_path,file_path_for_match_ids=all_match_ids_file_path)
+    all_matches = collect_all_matches(riot_api_key,leaderboard_df,region,match_type='ranked',number_matches=5,file_path_for_processed_players=processed_player_puuids_file_path,file_path_for_match_ids=all_match_ids_file_path)
 
     obtain_match_data(riot_api_key,all_matches,region,processed_match_ids_file_path,file_path_for_data=data_file_path)
         
