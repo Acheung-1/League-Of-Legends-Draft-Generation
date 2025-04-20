@@ -1,7 +1,9 @@
-import random
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset, random_split
 import ast
 
-def read_txt_to_set(file_path):
+def read_txt_match_data(file_path):
     '''
     DESCRIPTION:
         Reads txt file, removes the first index in the array, 
@@ -51,7 +53,7 @@ def main():
         y_data.txt (txt file):  outcome of team 2 --- losing = 0, winning = 1
     '''
 
-    match_data = read_txt_to_set("training_data.txt")
+    match_data = read_txt_match_data("training_data.txt")
     x = []
     y = []
     for line in match_data:
