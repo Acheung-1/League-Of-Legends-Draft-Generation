@@ -353,7 +353,7 @@ Id_to_Champion = {
     99:"Lux",
 }
 
-def get_league_leaderboard_url(riot_api_key,region,league,queue_type):
+def get_league_leaderboard_url(riot_api_key, region, league, queue_type):
     '''
     DESCRIPTION:
         Obtain leaderboard API URL based on the region, league, and queue type
@@ -369,7 +369,7 @@ def get_league_leaderboard_url(riot_api_key,region,league,queue_type):
     '''
     return f'https://{region}.api.riotgames.com/lol/league/v4/{league}/by-queue/{queue_type}?api_key={riot_api_key}'
 
-def get_matches_from_puuid_url(riot_api_key,region,player_puuid,match_type="ranked",num_matches=5):
+def get_matches_from_puuid_url(riot_api_key, region, player_puuid, match_type="ranked", num_matches=5):
     '''
     DESCRIPTION:
         Obtain # of match ids from player API URL based on the region, player, match type, and queue type
@@ -387,7 +387,7 @@ def get_matches_from_puuid_url(riot_api_key,region,player_puuid,match_type="rank
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{player_puuid}/ids?type={match_type}&start=0&count={num_matches}&api_key={riot_api_key}'
 
-def get_match_data_from_match_id_url(riot_api_key,region,match_id):
+def get_match_data_from_match_id_url(riot_api_key, region, match_id):
     '''
     DESCRIPTION:
         Obtain match data from match id API URL based on the region and match id
@@ -402,7 +402,7 @@ def get_match_data_from_match_id_url(riot_api_key,region,match_id):
     '''
     return f'https://{region}.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={riot_api_key}'
 
-def try_request(api_url,description,seconds_to_retry):
+def try_request(api_url, description, seconds_to_retry):
     '''
     DESCRIPTION:
         Tries to get a response from a get request, will retry up to 20 times with 
@@ -466,7 +466,8 @@ def append_to_txt(item,file_path):
         f.write(str(item) + '\n')
     return
 
-def grab_leaderboard(riot_api_key=None,count=None,queue_type='RANKED_SOLO_5x5',region="na1",leagues=['challengerleagues','grandmasterleagues','masterleagues'],file_path=f"leaderboard_df.xlsx"):
+def grab_leaderboard(riot_api_key=None, count=None, queue_type='RANKED_SOLO_5x5', region="na1",
+                     leagues=['challengerleagues','grandmasterleagues','masterleagues'], file_path=f"leaderboard_df.xlsx"):
     '''
     DESCRIPTION:
         Grabs top x amount of players and returns a configured df with columns "rank","summonerId","puuid","leaguePoints","wins","losses","hotStreak"
@@ -482,9 +483,9 @@ def grab_leaderboard(riot_api_key=None,count=None,queue_type='RANKED_SOLO_5x5',r
         Output (type):          Configured leaderboard df
     '''
     for league in leagues:
-        players_api_url = get_league_leaderboard_url(riot_api_key,region,league,queue_type)
+        players_api_url = get_league_leaderboard_url(riot_api_key, region, league, queue_type)
         
-        response = try_request(players_api_url,"players from leaderboard",10)
+        response = try_request(players_api_url, "players from leaderboard", 10)
             
         if response:  
             leaderboard_df = pd.DataFrame(response.get('entries', []))
@@ -518,7 +519,8 @@ def configure_leaderboard(leaderboard):
     leaderboard['rank'] += 1
     return leaderboard
 
-def collect_all_matches(riot_api_key=None,leaderboard_df=None,region=None,match_type='ranked',number_matches=5,file_path_for_processed_players="processedPlayerPUUIDs.xlsx",file_path_for_match_ids="matches_df.xlsx"):
+def collect_all_matches(riot_api_key=None, leaderboard_df=None, region=None, match_type='ranked', number_matches=5,
+                        file_path_for_processed_players="processedPlayerPUUIDs.xlsx", file_path_for_match_ids="matches_df.xlsx"):
     '''
     DESCRIPTION:
         Grabs top players from leaderboard, collects all unique match ids, and stores into a txt file
@@ -542,23 +544,23 @@ def collect_all_matches(riot_api_key=None,leaderboard_df=None,region=None,match_
     for puuid in leaderboard_df['puuid']:
         if puuid in processed_players:
             continue
-        matches = collect_matches_from_player(riot_api_key,region,puuid,match_type,number_matches)
+        matches = collect_matches_from_player(riot_api_key, region, puuid, match_type, number_matches)
 
         for match_id in matches:
             if match_id not in all_match_ids:
                 count_match += 1
                 print(f"match_id count: {count_match}")
-                append_to_txt(match_id,file_path_for_match_ids)
+                append_to_txt(match_id, file_path_for_match_ids)
 
         all_match_ids.update(matches)
         count_player += 1
         print(f"\n player count: {count_player}\n")
-        append_to_txt(puuid,file_path_for_processed_players)
+        append_to_txt(puuid, file_path_for_processed_players)
         processed_players.add(puuid)
 
     return all_match_ids
 
-def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_type='ranked',num_matches=5):
+def collect_matches_from_player(riot_api_key=None, region=None, puuid=None, match_type='ranked', num_matches=5):
     '''
     DESCRIPTION:
         Collects # of matches from player and stores in a set
@@ -582,7 +584,7 @@ def collect_matches_from_player(riot_api_key=None,region=None,puuid=None,match_t
             
     return match_ids
 
-def obtain_match_data(riot_api_key,all_match_ids,region,file_path_for_processed_matches,file_path_for_data):
+def obtain_match_data(riot_api_key, all_match_ids, region, file_path_for_processed_matches, file_path_for_data):
     '''
     DESCRIPTION:
         Gathers data from each match and stores into a txt file (file_path_for_data)
@@ -605,7 +607,7 @@ def obtain_match_data(riot_api_key,all_match_ids,region,file_path_for_processed_
             all_proccessed_matches_set.add(match_id)
     return
 
-def get_match_json(riot_api_key,region,match_id):
+def get_match_json(riot_api_key, region,match_id):
     '''
     DESCRIPTION:
         Obtains json of match from riot api
@@ -619,7 +621,7 @@ def get_match_json(riot_api_key,region,match_id):
         response (json):           response.json()
     '''
     
-    match_data_api_url = get_match_data_from_match_id_url(riot_api_key,region,match_id)
+    match_data_api_url = get_match_data_from_match_id_url(riot_api_key, region, match_id)
     response = try_request(match_data_api_url,"match data from match id",10)
 
     return response
@@ -645,8 +647,8 @@ def process_match_json_per_team(match_json):
 
 
     data = [patch]
-    team1 = process_player_champion_name_to_id(players,0,4,False)
-    team2 = process_player_champion_name_to_id(players,5,9,False)
+    team1 = process_player_champion_name_to_id(players, start_index=0, end_index=4, use_champion_name=False)
+    team2 = process_player_champion_name_to_id(players, start_index=5, end_index=9, use_champion_name=False)
 
     if players[0]['win']:
         data = data + team2 + team1
@@ -655,7 +657,7 @@ def process_match_json_per_team(match_json):
 
     return data
 
-def process_player_champion_name_to_id(players,start_index,end_index,champion_name):
+def process_player_champion_name_to_id(players, start_index, end_index, use_champion_name):
     '''
     DESCRIPTION:
         From players json, converts champion name into id if champion_name is True, else obtain champion name
@@ -672,16 +674,16 @@ def process_player_champion_name_to_id(players,start_index,end_index,champion_na
     '''
     player_champs = []
     
-    if not champion_name:
-        for i in range(start_index,end_index+1):
-            player_champs.append(players[i]['championId'])
-        return player_champs
+    if use_champion_name:
+        for i in range(start_index, end_index+1):
+            player_champs.append(Id_to_Champion[players[i]['championId']])
+            return player_champs
+        
+    for i in range(start_index, end_index+1):
+        player_champs.append(players[i]['championId'])
     
-    for i in range(start_index,end_index+1):
-        player_champs.append(Id_to_Champion[players[i]['championId']])
-
     return player_champs
-
+    
 def main():
     load_dotenv()
     riot_api_key = os.environ.get('riot_api_key')
@@ -703,11 +705,22 @@ def main():
     if not os.path.exists(processed_player_puuids_file_path):
         open(processed_player_puuids_file_path, 'w').close()
 
-    leaderboard_df = grab_leaderboard(riot_api_key,count=5,queue_type='RANKED_SOLO_5x5',region=region_leaderboard,leagues=['challengerleagues','grandmasterleagues'],file_path=leaderboard_df_file_path)
+    leaderboard_df = grab_leaderboard(riot_api_key, 
+                                      count=5,
+                                      queue_type='RANKED_SOLO_5x5',
+                                      region=region_leaderboard,
+                                      leagues=['challengerleagues','grandmasterleagues'],
+                                      file_path=leaderboard_df_file_path)
 
-    all_matches = collect_all_matches(riot_api_key,leaderboard_df,region,match_type='ranked',number_matches=5,file_path_for_processed_players=processed_player_puuids_file_path,file_path_for_match_ids=all_match_ids_file_path)
+    all_matches = collect_all_matches(riot_api_key, 
+                                      leaderboard_df, 
+                                      region,
+                                      match_type='ranked', 
+                                      number_matches=5,
+                                      file_path_for_processed_players=processed_player_puuids_file_path,
+                                      file_path_for_match_ids=all_match_ids_file_path)
 
-    obtain_match_data(riot_api_key,all_matches,region,processed_match_ids_file_path,file_path_for_data=data_file_path)
+    obtain_match_data(riot_api_key, all_matches, region, processed_match_ids_file_path, file_path_for_data=data_file_path)
         
 
 main()
