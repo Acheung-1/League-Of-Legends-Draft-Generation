@@ -1,18 +1,19 @@
-import torch
-import torch.nn as nn
+import random
 from torch.utils.data import DataLoader, TensorDataset, random_split
 import ast
 
 def read_txt_match_data(file_path):
     '''
     DESCRIPTION:
-        Reads txt file, removes the first index in the array, 
-    
+        Reads a txt file containing match data (each line is a list)
+        Removes the first element (patch) from each list
+        Returns a list of the containing champion ids (team 1 [losing] and team 2 [winning])
+
     INPUTS:
         file_path (str):        File path to txt file
-    
+
     OUTPUTS:
-        Output (array(array(int))):      array of array of match data (losing team, winning team)
+        list[list[int]]:        A list of lists containing champion IDs, patch is removed
     '''
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -24,7 +25,7 @@ def read_txt_match_data(file_path):
     except FileNotFoundError:
         return
     
-def append_to_txt(item,file_path):
+def append_to_txt(item, file_path):
     '''
     DESCRIPTION:
         Appends a string to a txt file 
@@ -67,8 +68,8 @@ def main():
             x.append(line)
             y.append(1)
     for index in range(len(x)):
-        append_to_txt(x[index],"x_data.txt")
-        append_to_txt(y[index],"y_data.txt")
+        append_to_txt(x[index], "x_data.txt")
+        append_to_txt(y[index], "y_data.txt")
 
 
 
