@@ -24,6 +24,19 @@ def read_txt_match_data(file_path):
             return array
     except FileNotFoundError:
         return
+
+def save_lists_to_file(lists, file_path):
+    '''
+    DESCRIPTION:
+        Save a list of lists to a text file, with each list on a new line
+    
+    INPUTS:
+        lists (array(array(ints))):     List of lists to save
+        file_path (str):                File path to txt file
+    '''
+    with open(file_path, 'w') as f:
+        for item in lists:
+            f.write(str(item) + '\n')
     
 def append_to_txt(item, file_path):
     '''
@@ -55,6 +68,7 @@ def main():
     '''
 
     match_data = read_txt_match_data("training_data.txt")
+    save_lists_to_file(match_data, "formatted_training_data.txt")
     x = []
     y = []
     for line in match_data:
@@ -70,7 +84,5 @@ def main():
     for index in range(len(x)):
         append_to_txt(x[index], "x_data.txt")
         append_to_txt(y[index], "y_data.txt")
-
-
 
 main()
