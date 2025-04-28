@@ -135,19 +135,22 @@ def grab_leaderboard(riot_api_key=None, count=None, queue_type='RANKED_SOLO_5x5'
     OUTPUTS:
         Output (type):          Configured leaderboard df
     '''
+    leaderboard_df = pd.DataFrame() 
+
     for league in leagues:
         players_api_url = get_league_leaderboard_url(riot_api_key, region, league, queue_type)
         
         response = try_request(players_api_url, "players from leaderboard", 10)
-            
-        if response:  
-            leaderboard_df = pd.DataFrame(response.get('entries', []))
-            leaderboard_df = configure_leaderboard(leaderboard_df)
-            leaderboard_df.to_csv(file_path, mode='a', sep='\t', header=True, index=False)
-            
-        if count and len(leaderboard_df) > count:
-            break
         
+        if response:  
+            new_leaderboard_df = pd.DataFrame(response.get('entries', []))
+            new_leaderboard_df = configure_leaderboard(new_leaderboard_df)
+            new_leaderboard_df.to_csv(file_path, mode='a', sep='\t', header=True, index=False)
+            leaderboard_df = pd.concat([leaderboard_df, new_leaderboard_df], ignore_index=True)      
+        
+        if count and len(leaderboard_df) >= count:
+            break
+ 
     return leaderboard_df.head(count) if count else leaderboard_df
 
 def configure_leaderboard(leaderboard):
@@ -376,4 +379,5 @@ def main():
     obtain_match_data(riot_api_key, all_matches, region, processed_match_ids_file_path, file_path_for_data=data_file_path)
         
 
-main()
+if __name__ == "__main__":
+    main()

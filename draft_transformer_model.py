@@ -270,6 +270,5 @@ def main():
     generate_multiple_drafts(model,seed,vocab_size=vocab_size,device=device,num_drafts=3)
 
 
-    
-
-main()
+if __name__ == "__main__":
+    main()

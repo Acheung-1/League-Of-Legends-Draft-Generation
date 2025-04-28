@@ -148,6 +148,7 @@ def main():
         total = 0
         for X_batch, y_batch in test_loader:
             outputs = model(X_batch)
+            print(outputs)
             predicted = (outputs >= 0.5).float()
             correct += (predicted == y_batch).sum().item()
             total += y_batch.size(0)
@@ -158,4 +159,5 @@ def main():
     torch.save(model,"outcome_predictor_model_na_challenge.pt")
     print("Training complete. Model saved to outcome_predictor_model_na_challenge.pt")  
 
-main()
+if __name__ == "__main__":
+    main()
