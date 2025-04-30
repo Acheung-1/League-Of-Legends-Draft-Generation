@@ -85,4 +85,5 @@ def main():
         append_to_txt(x[index], "x_data.txt")
         append_to_txt(y[index], "y_data.txt")
 
-main()
+if __name__ == "__main__":
+    main()

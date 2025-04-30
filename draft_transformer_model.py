@@ -3,9 +3,9 @@ import torch.nn as nn
 from torch.utils.data import random_split, Dataset, DataLoader
 import ast
 import random
-from champion_dictionary import Champion_to_Id, Id_to_Champion
+from champion_dictionary import Champion_to_Id, Id_to_Champion, Id_to_Consecutive_Id, Consecutive_Id_to_Id
 
-# ---------- Dataset ---------- 
+# ---------- Dataset ----------
 # predicting each champion one by one
 class DraftDataset(Dataset):
     def __init__(self, file_path):
@@ -17,16 +17,17 @@ class DraftDataset(Dataset):
                 if not line:
                     continue
                 try:
-                    full = ast.literal_eval(line)
-                    full = [int(float(x)) for x in full]  # 🔥 Convert everything to int
-                    if len(full) < 10:
+                    team_comps = ast.literal_eval(line)
+                    team_comps = [Id_to_Consecutive_Id[int(x)] for x in team_comps]
+                    if len(team_comps) != 10:
                         continue
-                    for i in range(5, 10):  # Predict each winning champ position
-                        target = full[i]
-                        if target >= self.vocab_size or target < 0:
-                            continue  # skip bad values
-                        input_vec = full[:i] + [0] * (10 - i)
-                        self.data.append((input_vec, target))
+                    enemy = team_comps[:5]
+                    predicted_team = team_comps[5:]
+                    if any(champ < 0 or champ >= self.vocab_size for champ in team_comps):
+                        continue
+                    input_vec = enemy + [0]*5
+                    target_vec = predicted_team
+                    self.data.append((input_vec, target_vec))
                 except Exception as e:
                     print(f"Skipping line due to error: {e}")
                     continue
@@ -40,33 +41,49 @@ class DraftDataset(Dataset):
 
 # ---------- Model ----------
 class RoleAwareTransformer(nn.Module):
-    def __init__(self, vocab_size, embed_dim=128):
-        super(RoleAwareTransformer, self).__init__()
+    def __init__(self, vocab_size, embed_dim=128, use_role_embedding=True):
+        super().__init__()
+        self.use_role_embedding = use_role_embedding
         self.embedding = nn.Embedding(vocab_size, embed_dim, padding_idx=0)
+
+        if self.use_role_embedding:
+            self.role_embedding = nn.Embedding(10, embed_dim)  # 10 positions: 5 enemy, 5 win team
+
         self.transformer = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model=embed_dim, nhead=4, batch_first=True),
-            num_layers=2 # Increase this to play around
+            num_layers=2
         )
-        self.fc = nn.Linear(embed_dim * 11, vocab_size)  # Changed to 11 tokens
+
+        self.fc = nn.Linear(embed_dim, vocab_size)
 
     def forward(self, x):
-        emb = self.embedding(x)  
-        out = self.transformer(emb)  
-        out = out.flatten(start_dim=1)  
-        return self.fc(out) 
+        # x: [batch, 10]
+        emb = self.embedding(x)  # [batch, 10, embed_dim]
+
+        if self.use_role_embedding:
+            role_ids = torch.arange(10, device=x.device).unsqueeze(0).repeat(x.size(0), 1)
+            role_emb = self.role_embedding(role_ids)
+            emb = emb + role_emb  # Combine champ + role info
+
+        out = self.transformer(emb)  # [batch, 10, embed_dim]
+        win_out = out[:, 5:, :]  # Keep last 5: predicted team
+        logits = self.fc(win_out)  # [batch, 5, vocab_size]
+        return logits
+
 
 # ---------- Training ----------
 def train_model(model, dataloader, vocab_size, epochs=10, device='cpu'):
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     criterion = nn.CrossEntropyLoss()
+
     for epoch in range(epochs):
         model.train()
         total_loss = 0
         for x, y in dataloader:
             x, y = x.to(device), y.to(device)
-            logits = model(x)
-            loss = criterion(logits, y)
+            logits = model(x)  # [batch, 5, vocab_size]
+            loss = criterion(logits.view(-1, vocab_size), y.view(-1))  # flatten for loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -118,26 +135,26 @@ def generate_with_randomness(logits, method="top_k", **kwargs):
     else:
         return torch.argmax(logits).item()
 
-# ---------- Generation Function ----------
 def generate_team(model, input_seq, vocab_size, device, sampling_method="top_k", **sampling_params):
     model.eval()
-    input_seq = input_seq[:5]  # Keep losing team 
-    team = input_seq[:5]  # Start with losing team
+    team = input_seq[:5]  # Enemy team
+    generated = []
 
-    for _ in range(5, 10):  # Predict winning team
-        current_input = team + [0] * (10 - len(team))  # Pad to length 10
-        x = torch.tensor(current_input, dtype=torch.long, device=device).unsqueeze(0)  # (1, 10)
-        logits = model(x)[0]
+    for i in range(5):
+        current_input = team + generated + [0] * (5 - len(generated))
+        x = torch.tensor(current_input, dtype=torch.long, device=device).unsqueeze(0)
+        logits = model(x)[0]  # Shape: (5, vocab_size)
+        logits_i = logits[len(generated)]  # logits for current position
+        next_champ = generate_with_randomness(logits_i, method=sampling_method, **sampling_params)
 
-        # Sample the next champion for the current position
-        next_champ = generate_with_randomness(logits, method=sampling_method, **sampling_params)
+        # Avoid duplicates
+        while next_champ in team + generated:
+            next_champ = generate_with_randomness(logits_i, method=sampling_method, **sampling_params)
 
-        # Avoid picking the same champion twice in the same team
-        while next_champ in team:
-            next_champ = generate_with_randomness(logits, method=sampling_method, **sampling_params)
+        generated.append(next_champ)
 
-        team.append(next_champ)
-    return team
+    return team + generated
+
 
 def evaluate_model(model, dataloader, device):
     model.eval()
@@ -148,13 +165,11 @@ def evaluate_model(model, dataloader, device):
         for x, y in dataloader:
             x, y = x.to(device), y.to(device)
             logits = model(x)
-            predictions = torch.argmax(logits, dim=1)  # Predicted champions for positions 6–10
+            predictions = torch.argmax(logits, dim=2)  # (batch_size, 5)
 
-            # Count how many champions are correctly predicted
-            for i in range(5, 10):  # Check for positions 6 to 10
-                if predictions[i] == y[i]:  # If predicted champion matches the true champion
-                    correct += 1
-            total += 5  # We're checking 5 positions in total (positions 6 to 10)
+            for i in range(5):  # For positions 0–4 (winning team slots)
+                correct += (predictions[:, i] == y[:, i]).sum().item()
+            total += x.size(0) * 5  # 5 champs per sample
 
     accuracy = correct / total if total > 0 else 0
     print(f"Partial Test Accuracy: {accuracy * 100:.2f}%")
@@ -171,33 +186,46 @@ def get_vocab_size(file_path):
                 continue
     return max_token + 1  # +1 since torch assumes class labels from 0 to vocab_size-1
 
-def generate_multiple_drafts(model, seed, vocab_size, device, num_drafts=5):
+def decode_champ_list(champ_ids):
+    '''
+    DESCRIPTION:
+        Takes an array of champions that 
+
+    INPUTS:
+        champ_ids (array(int)):    Array containing champions in consecutive ids for training
+
+    OUTPUTS:
+        Output (type):             Array containing champion names
+    '''
+    return [Id_to_Champion[Consecutive_Id_to_Id[champ_id]] for champ_id in champ_ids]
+
+def generate_multiple_drafts(model, seed, vocab_size, device, top_k_drafts=3, top_p_drafts=3, temp_drafts=1):
     '''
     DESCRIPTION:
         Generate multiple drafts using different sampling methods
-    
+
     INPUTS:
         model ():                  The trained model
         seed (array(int)):         Losing and winning team draft
         vocab_size (int):          Size of the champion vocabulary
         device:                    Computing device (cuda/cpu)
         num_drafts (int):          Number of drafts to generate for each sampling method
-    
+
     OUTPUTS:
         Output (type):             description
     '''
     sampling_configs = [
-        ("top_k", {"k": 3}),
-        ("top_p", {"p": 0.1}),
-        ("temperature", {"temperature": 1e-8})
+        ("top_k", {"k": 3}, top_k_drafts),
+        ("top_p", {"p": 0.5}, top_p_drafts),
+        ("temperature", {"temperature": 1e-8}, temp_drafts)
     ]
-    
+
     # Prepare the seed
-    print(f"Losing Team + Winning Team: {[Id_to_Champion[champ] for champ in seed]}\n")
-    print(f"Enemy Team: {[Id_to_Champion[champ] for champ in seed[:5]]}\n")
+    print(f"Losing Team + Winning Team: {decode_champ_list(seed)}\n")
+    print(f"Enemy Team: {decode_champ_list(seed[:5])}\n")
     seed = seed[:5] + [0,0,0,0,0]  # Keep first 5 champions and pad with zeros
-    
-    for method, params in sampling_configs:
+
+    for method, params, num_drafts in sampling_configs:
         print(f"\nGenerating {num_drafts} drafts using {method} sampling:")
         for i in range(num_drafts):
             generated_draft = generate_team(
@@ -208,7 +236,7 @@ def generate_multiple_drafts(model, seed, vocab_size, device, num_drafts=5):
                 sampling_method=method,
                 **params
             )
-            draft = [Id_to_Champion[champ] for champ in generated_draft]
+            draft = [Id_to_Champion[Consecutive_Id_to_Id[champ]] for champ in generated_draft]
             print(f"Draft {i+1}: {draft[5:]}")
         print("-" * 50)
 
@@ -237,11 +265,11 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
-    # # Initialize and train model
-    # model = RoleAwareTransformer(vocab_size=vocab_size, embed_dim=embed_dim)
-    # train_model(model, train_loader, vocab_size=vocab_size, epochs=10, device=device)
-    # torch.save(model.state_dict(), 'model.pt')
-    # print("Training complete. Model saved to na_challenger_model.pt.")
+    # Initialize and train model
+    model = RoleAwareTransformer(vocab_size=vocab_size, embed_dim=embed_dim)
+    train_model(model, train_loader, vocab_size=vocab_size, epochs=10, device=device)
+    torch.save(model.state_dict(), 'draft_predictor_model_na_challenger.pt')
+    print("Training complete. Model saved to na_challenger_model.pt.")
 
     # # evaluate_model(model, test_loader, device)
 
@@ -254,20 +282,19 @@ def main():
     # Load the saved model weights
     
     #How saved it
-    model = torch.load('draft_predictor_model_na_challenger.pt', map_location=device, weights_only=False)
+    # model = torch.load('draft_predictor_model_na_challenger.pt', map_location=device, weights_only=False)
     # model.eval()
-
-    # # should be saved like: torch.save(model.state_dict(), 'model.pt')
-    # model.load_state_dict(torch.load('model.pt', map_location=device))
-    # model.to(device)
-    # # model.eval()
+    model = RoleAwareTransformer(vocab_size=vocab_size, embed_dim=embed_dim)  # Create the model first
+    model.load_state_dict(torch.load('draft_predictor_model_na_challenger.pt', map_location=device))  # Load weights
+    model.to(device)
+    model.eval()
 
     # Example usage
     seed = [150, 80, 268, 110, 235, 897, 234, 4, 81, 117]  # patch + losing team (5 picks total)
     # seed = [777, 254, 711, 901, 40, 420, 245, 142, 221, 53]  # patch + losing team (5 picks total)
     # seed = [0, 0, 0, 901, 0, 420, 245, 142, 221, 53]  # patch + losing team (5 picks total)
     # draft = [Id_to_Champion[champ] for champ in seed]
-    generate_multiple_drafts(model,seed,vocab_size=vocab_size,device=device,num_drafts=3)
+    generate_multiple_drafts(model,seed,vocab_size=vocab_size,device=device,top_k_drafts=3, top_p_drafts=3, temp_drafts=1)
 
 
 if __name__ == "__main__":
