@@ -51,10 +51,15 @@ def append_to_txt(item, file_path):
         f.write(str(item) + '\n')
     return
     
-def main():
+def main(unformatted_training_data="training_data.txt", 
+         formatted_training_data="formatted_training_data.txt",
+         randomized_team_comp="x_randomized_team_comp.txt",
+         randomized_outcomes="y_randomized_outcomes.txt",
+):
     '''
     DESCRIPTION:
-        Reads a txt file that is currently formated [losing team, winning team]
+        Reads a txt file that is currently formated [patch, losing team, winning team]
+        Removes patch from the each list
         Chooses a random number between 0 and 1
         Randomizes order of losing team, winning team
             If < 0.5, format  x = [winning team, losing team] y = [0]
@@ -67,23 +72,23 @@ def main():
         y_data.txt (txt file):  outcome of team 2 --- losing = 0, winning = 1
     '''
 
-    match_data = read_txt_match_data("training_data.txt")
-    save_lists_to_file(match_data, "formatted_training_data.txt")
-    x = []
-    y = []
+    match_data = read_txt_match_data(unformatted_training_data)
+    save_lists_to_file(match_data, formatted_training_data)
+    match_team_comp = []
+    outcome = []
     for line in match_data:
         random_num = random.random()
         # Store the outcome of being the second team
         if random_num < 0.5: # [winning team, losing team] [0]
             reverse = line[5:]+line[:5]
-            x.append(reverse)
-            y.append(0)
+            match_team_comp.append(reverse)
+            outcome.append(0)
         else: # [losing team, winning team] [1]
-            x.append(line)
-            y.append(1)
-    for index in range(len(x)):
-        append_to_txt(x[index], "x_data.txt")
-        append_to_txt(y[index], "y_data.txt")
+            match_team_comp.append(line)
+            outcome.append(1)
+    for index in range(len(match_team_comp)):
+        append_to_txt(match_team_comp[index], randomized_team_comp)
+        append_to_txt(outcome[index], randomized_outcomes)
 
 if __name__ == "__main__":
     main()
