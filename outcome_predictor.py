@@ -74,8 +74,30 @@ class LogisticRegressionModel(nn.Module):
     def forward(self, x):
         return torch.sigmoid(self.linear(x))
     
-
-def main():
+    def predict_outcome(self, champion_ids, device='cpu'):
+        '''
+        DESCRIPTION:
+            Given an array of champion ids where the array is structures [team 1, team 2],
+            Predict whether team 2 will beat team 1 (team 2 wins: 1, team 2 loses: 0)
+        
+        INPUTS:
+            champion_ids (array(str)):      array of champion ids used by riot api
+            device (str):                   cpu,gpu
+        
+        OUTPUTS:
+            Output (float):                 if team 2 wins: 1, if team 2 loses: 0
+        '''
+        x = ids_to_one_hot(champion_ids)
+        x_tensor = torch.tensor([x], dtype=torch.float32).to(device)
+        with torch.no_grad():
+            output = self(x_tensor)
+            prediction = (output >= 0.5).float().item()
+        return prediction 
+    
+def main(randomized_team_comp="x_randomized_team_comp.txt",
+         randomized_outcomes="y_randomized_outcomes.txt",
+         outcome_predictor_model="binary_predictor_model.pt",
+):
     '''
     DESCRIPTION:
         Trains a logistic regression model on input features and binary labels using PyTorch
@@ -97,8 +119,10 @@ def main():
     else:
         print("CUDA is NOT available. Using CPU.")
     
-    X = read_txt_to_x_tensor('x_data.txt')           # shape: (n_samples, 10)
-    y = read_txt_to_y_tensor('y_data.txt').reshape(-1, 1)  # shape: (n_samples, 1)
+    X = read_txt_to_x_tensor(randomized_team_comp)                  # shape: (n_samples, 1710) -> 171 champions (including unknown) * 10
+    y = read_txt_to_y_tensor(randomized_outcomes).reshape(-1, 1)    # shape: (n_samples, 1)
+    print(X.shape)
+    print(y.shape)
 
     # Create dataset
     dataset = TensorDataset(X, y)
@@ -122,7 +146,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Training loop
-    num_epochs = 100
+    num_epochs = 20
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
@@ -156,8 +180,8 @@ def main():
         accuracy = correct / total
         print(f'Accuracy on test set: {accuracy:.4f}')
     
-    torch.save(model,"outcome_predictor_model_na_challenge.pt")
-    print("Training complete. Model saved to outcome_predictor_model_na_challenge.pt")  
+    torch.save(model.state_dict(), outcome_predictor_model)
+    print(f"Training complete. Model saved to {outcome_predictor_model}")  
 
 if __name__ == "__main__":
     main()
