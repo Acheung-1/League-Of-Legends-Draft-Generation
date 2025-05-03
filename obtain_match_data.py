@@ -359,44 +359,6 @@ def process_player_champion_name_to_id(players, start_index, end_index, use_cham
         player_champs.append(players[i]['championId'])
     
     return player_champs
-    
-# def main(leaderboard_df_file_path = "leaderboard_df.txt",
-#          all_match_ids_file_path = "all_match_ids.txt",
-#          processed_player_puuids_file_path = "processed_player_puuids.txt",
-#          processed_match_ids_file_path = "processed_match_ids.txt",
-#          data_file_path = "training_data.txt",
-#          region_leaderboard = "na1",
-#          region = "americas",
-#     ):
-#     load_dotenv()
-#     riot_api_key = os.environ.get('riot_api_key')
-#     if riot_api_key is None:
-#         raise ValueError("riot_api_key not found. Make sure your .env file is set correctly.")
-    
-#     if not os.path.exists(leaderboard_df_file_path):
-#         open(leaderboard_df_file_path, 'w').close()
-#     if not os.path.exists(all_match_ids_file_path):
-#         open(all_match_ids_file_path, 'w').close()
-#     if not os.path.exists(processed_player_puuids_file_path):
-#         open(processed_player_puuids_file_path, 'w').close()
-
-#     leaderboard_df = grab_leaderboard(riot_api_key, 
-#                                       player_count=5,
-#                                       queue_type='RANKED_SOLO_5x5',
-#                                       region_leaderboard=region_leaderboard,
-#                                       leagues=['challengerleagues','grandmasterleagues'],
-#                                       file_path=leaderboard_df_file_path)
-
-#     all_matches = collect_all_matches(riot_api_key, 
-#                                       leaderboard_df, 
-#                                       region,
-#                                       match_type='ranked', 
-#                                       number_matches=5,
-#                                       file_path_for_processed_players=processed_player_puuids_file_path,
-#                                       file_path_for_match_ids=all_match_ids_file_path)
-
-#     obtain_match_data(riot_api_key, all_matches, region, processed_match_ids_file_path, file_path_to_save_data=data_file_path)
-
 
 def main(
     riot_api_key=None,
@@ -404,7 +366,7 @@ def main(
     all_match_ids_file_path="all_match_ids.txt",
     processed_player_puuids_file_path="processed_player_puuids.txt",
     processed_match_ids_file_path="processed_match_ids.txt",
-    data_file_path="training_data.txt",
+    data_file_path="unformatted_training_data.txt",
     region_leaderboard="na1",
     region_country="americas",
     player_count=5,
@@ -413,6 +375,36 @@ def main(
     match_type="ranked",
     number_matches=5
 ):
+    '''
+    DESCRIPTION:
+        Uses Riot API to pull in the top players in a region to reduce skill variability
+        From each player, fetch the past X number of games 
+        Store match IDs as a set to only get unique matches
+        From each match ID, collect data [patch, team 1, team 2]
+        Store data in txt file
+
+    INPUTS:
+        riot_api_key (str):                                 riot api key from developer portal
+        leaderboard_df_file_path (txt file):                contains top number (player_count) of players from leaderboard
+        all_match_ids_file_path (txt file):                 contains unique match ids from the past number (number_matches) from the top number (player_count) of players
+        processed_player_puuids_file_path (txt file):       contains the processed player puuids
+        processed_match_ids_file_path (txt file):           contains the processed match ids
+        data_file_path (txt file):                          _unformatted_training_data [patch * 100, team 1, team 2]
+        region_leaderboard (str):                           na1,br1,eun1,euw1,jp1,kr,la1,la2,me1,oc1,ru,sg2,tr1,tw2,vn2
+        region_country (str):                               americas,asia,europe,sea
+        player_count (int)=:                                number of players to grab from the leaderboard
+        queue_type (str):                                   ranked_solo_5x5,ranked_solo_sr,ranked_solo_tt
+        leagues (array(str)):                               [challengerleagues,grandmasterleagues,masterleagues]
+        match_type (str):                                   ranked,normal,tourney,tutorial
+        number_matches (int):                               number of matches to take from each player
+    
+    OUTPUTS:
+        leaderboard_df_file_path (txt file):                contains top number (player_count) of players from leaderboard
+        all_match_ids_file_path (txt file):                 contains unique match ids from the past number (number_matches) from the top number (player_count) of players
+        processed_player_puuids_file_path (txt file):       contains the processed player puuids
+        processed_match_ids_file_path (txt file):           contains the processed match ids
+        data_file_path (txt file):                          _unformatted_training_data [patch * 100, team 1, team 2]
+    '''
     load_dotenv()
     riot_api_key = os.environ.get('riot_api_key')
     if riot_api_key is None:

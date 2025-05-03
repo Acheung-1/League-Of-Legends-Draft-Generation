@@ -48,34 +48,34 @@ def run_project():
         }
 
 
-        # Step 1: Fetch match data
-        obtain_data_main(riot_api_key=config["riot_api_key"],
-                         leaderboard_df_file_path=config["file_paths"]["leaderboard_df"],
-                         all_match_ids_file_path=config["file_paths"]["match_ids"],
-                         processed_player_puuids_file_path=config["file_paths"]["processed_puuids"],
-                         processed_match_ids_file_path=config["file_paths"]["processed_matches"],
-                         data_file_path=config["file_paths"]["unformatted_training_data"],
-                         region_leaderboard=config["region_leaderboard"],
-                         region_country=config["region_country"],
-                         player_count=config["player_count"],
-                         queue_type=config["queue_type"],
-                         leagues=config["leagues"],
-                         match_type=config["match_type"],
-                         number_matches=config["number_matches"]
-        )
-        print("Success 1")
+        # # Step 1: Fetch match data
+        # obtain_data_main(riot_api_key=config["riot_api_key"],
+        #                  leaderboard_df_file_path=config["file_paths"]["leaderboard_df"],
+        #                  all_match_ids_file_path=config["file_paths"]["match_ids"],
+        #                  processed_player_puuids_file_path=config["file_paths"]["processed_puuids"],
+        #                  processed_match_ids_file_path=config["file_paths"]["processed_matches"],
+        #                  data_file_path=config["file_paths"]["unformatted_training_data"],
+        #                  region_leaderboard=config["region_leaderboard"],
+        #                  region_country=config["region_country"],
+        #                  player_count=config["player_count"],
+        #                  queue_type=config["queue_type"],
+        #                  leagues=config["leagues"],
+        #                  match_type=config["match_type"],
+        #                  number_matches=config["number_matches"]
+        # )
+        # print("Success 1")
 
-        # Step 2: Run randomizer
-        randomizer_main(unformatted_training_data=config["file_paths"]["unformatted_training_data"], 
-                        formatted_training_data=config["file_paths"]["formatted_training_data"],
-                        randomized_team_comp=config["file_paths"]["x_randomized_team_comp"],
-                        randomized_outcomes=config["file_paths"]["y_randomized_outcomes"],
-        )
-        print("Success 2")
+        # # Step 2: Run randomizer
+        # randomizer_main(unformatted_training_data=config["file_paths"]["unformatted_training_data"], 
+        #                 formatted_training_data=config["file_paths"]["formatted_training_data"],
+        #                 randomized_team_comp=config["file_paths"]["x_randomized_team_comp"],
+        #                 randomized_outcomes=config["file_paths"]["y_randomized_outcomes"],
+        # )
+        # print("Success 2")
 
-        # # Step 3: Train predictor
-        # predictor_main(data_file="randomized_training_data.txt", model_output=config["binary_predictor_model"])
-        # print("Success 3")
+        # Step 3: Train predictor
+        predictor_main(data_file="randomized_training_data.txt", model_output=config["binary_predictor_model"])
+        print("Success 3")
 
         # # Step 4: Train transformer
         # transformer_main(data_file="randomized_training_data.txt", model_output=config["transformer_model"])
