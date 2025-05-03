@@ -13,7 +13,7 @@ def generate_file_paths(region_for_leaderboard):
         "match_ids": f"{region_for_leaderboard}_all_match_ids.txt",
         "processed_puuids": f"{region_for_leaderboard}_processed_player_puuids.txt",
         "processed_matches": f"{region_for_leaderboard}_processed_match_ids.txt",
-        "training_data": f"{region_for_leaderboard}_training_data.txt",
+        "unformatted_training_data": f"{region_for_leaderboard}_unformatted_training_data.txt",
         "randomized_training_data": f"{region_for_leaderboard}_randomized_training_data.txt",
         "binary_predictor_model": f"{region_for_leaderboard}_binary_predictor_model.pt",
         "transformer_model": f"{region_for_leaderboard}_transformer_model.pt",
@@ -54,7 +54,7 @@ def run_project():
                          all_match_ids_file_path=config["file_paths"]["match_ids"],
                          processed_player_puuids_file_path=config["file_paths"]["processed_puuids"],
                          processed_match_ids_file_path=config["file_paths"]["processed_matches"],
-                         data_file_path=config["file_paths"]["training_data"],
+                         data_file_path=config["file_paths"]["unformatted_training_data"],
                          region_leaderboard=config["region_leaderboard"],
                          region_country=config["region_country"],
                          player_count=config["player_count"],
@@ -66,7 +66,7 @@ def run_project():
         print("Success 1")
 
         # Step 2: Run randomizer
-        randomizer_main(unformatted_training_data=config["file_paths"]["training_data"], 
+        randomizer_main(unformatted_training_data=config["file_paths"]["unformatted_training_data"], 
                         formatted_training_data=config["file_paths"]["formatted_training_data"],
                         randomized_team_comp=config["file_paths"]["x_randomized_team_comp"],
                         randomized_outcomes=config["file_paths"]["y_randomized_outcomes"],

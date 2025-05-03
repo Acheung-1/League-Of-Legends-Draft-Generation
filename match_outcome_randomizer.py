@@ -65,11 +65,18 @@ def main(unformatted_training_data="training_data.txt",
             If < 0.5, format  x = [winning team, losing team] y = [0]
             If >= 0.5, format x = [losing team, winning team] y = [1]
         Stores x and y in distinct txt file to use as training data
+
+    INPUTS:
+        unformatted_training_data (txt file):   each line contains [patch * 100, team 1, team 2]
+        formatted_training_data (txt file):     removes patch number from training data [team 1, team 2]
+        randomized_team_comp (txt file):        randomizes team order based on training data [team 1, team 2]        
+        randomized_outcomes (txt file):         match outcome of randomized_team_comp (team 2 loses = 0, team 2 wins = 1)
     
     
     OUTPUTS:
-        x_data.txt (txt file):  [team 1, team 2]        
-        y_data.txt (txt file):  outcome of team 2 --- losing = 0, winning = 1
+        formatted_training_data (txt file):     removes patch number from training data
+        randomized_team_comp (txt file):        randomizes team order based on training data [team 1, team 2]        
+        randomized_outcomes (txt file):         match outcome of randomized_team_comp (team 2 loses = 0, team 2 wins = 1)
     '''
 
     match_data = read_txt_match_data(unformatted_training_data)
