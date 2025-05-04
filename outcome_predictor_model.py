@@ -92,11 +92,6 @@ class LogisticRegressionModel(nn.Module):
         with torch.no_grad():
             output = self(x_tensor)
         return output
-            # Convert output to binary prediction (0 or 1)
-            # You can adjust the threshold as needed
-            # For example, if output >= 0.5, predict 1; otherwise, predict 0
-            # prediction = (output >= 0.5).float().item()
-        # return prediction 
     
 def main(randomized_team_comp="x_randomized_team_comp.txt",
          randomized_outcomes="y_randomized_outcomes.txt",

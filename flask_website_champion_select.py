@@ -1,8 +1,6 @@
-from flask import Flask, render_template, jsonify, request, url_for
+from flask import Flask, render_template, jsonify, request
 from champion_dictionary import Champion_to_Id, Id_to_Champion, Consecutive_Id_to_Id, Id_to_Consecutive_Id
 import torch
-from torch.utils.data import Dataset
-import ast
 from draft_transformer_model import RoleAwareTransformer, generate_team
 from outcome_predictor_model import LogisticRegressionModel
 
@@ -22,11 +20,15 @@ def generate_multiple_drafts(model, riot_champ_ids, device, top_k_drafts=3, top_
         temp_drafts (int):            Number of drafts to generate using temperature sampling
     
     OUTPUTS:
-        None (prints results to console)
+        drafts (array(array(int))):   Return multiple generated team drafts based on different sampling strategies
     '''
+
+    # Top 10 champions based on probability
+    # Champion probability up to 50%
+    # Low temperature to view highest probability champs for each role
     sampling_configs = [
-        ("top_k", {"k": 3}, top_k_drafts),
-        ("top_p", {"p": 0.5}, top_p_drafts),
+        ("top_k", {"k": 10}, top_k_drafts),
+        ("top_p", {"p": 0.2}, top_p_drafts),
         ("temperature", {"temperature": 1e-8}, temp_drafts)
     ]
     drafts = {
@@ -36,7 +38,6 @@ def generate_multiple_drafts(model, riot_champ_ids, device, top_k_drafts=3, top_
     }
 
     for method, params, num_drafts in sampling_configs:
-        # print(f"\nGenerating {num_drafts} drafts using {method} sampling:")
         for i in range(num_drafts):
             generated_draft = generate_team(
                 model,
@@ -50,7 +51,7 @@ def generate_multiple_drafts(model, riot_champ_ids, device, top_k_drafts=3, top_
 
     return drafts
 
-# Create role-based champion lists
+# Create role-based champion lists for selection
 champion_roles = {
     'Top': sorted(list(Champion_to_Id.keys())),
     'Jungle': sorted(list(Champion_to_Id.keys())),
@@ -69,9 +70,9 @@ models = {
 
 # Initialize outcome predictor models
 outcome_predictors = {
-    'KR': LogisticRegressionModel(input_dim=1710),
-    'NA': LogisticRegressionModel(input_dim=1710),
-    'EUW': LogisticRegressionModel(input_dim=1710)
+    'KR': LogisticRegressionModel(input_dim=(len(Champion_to_Id)*10)),
+    'NA': LogisticRegressionModel(input_dim=(len(Champion_to_Id)*10)),
+    'EUW': LogisticRegressionModel(input_dim=(len(Champion_to_Id)*10))
 }
 
 # Load model weights
@@ -96,7 +97,6 @@ for predictor in outcome_predictors.values():
 @app.route('/')
 def home():
     all_champions = sorted(list(Champion_to_Id.keys()))
-    # return render_template('champion_select.html', champion_roles=champion_roles, all_champions=all_champions)
     return render_template('index.html', champion_roles=champion_roles, all_champions=all_champions)
 
 @app.route('/generate_draft', methods=['POST'])
@@ -131,7 +131,6 @@ def generate_draft():
             return jsonify({'error': 'Failed to generate drafts'}), 500
             
         # Convert the draft data to a serializable format
-        formatted_drafts = []
         highest_probability = 0
         highest_probability_draft = None
         

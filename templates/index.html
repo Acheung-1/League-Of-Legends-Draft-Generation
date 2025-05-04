@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    </head>
+<body>
+    <h1 class="title">League of Legends Draft Simulator</h1>
+    
+    <div class="draft-container">
+        <div class="team-section">
+            <!-- Champion selection inputs -->
+            <h2>Team 1</h2>
+            <!-- Repeat for each role -->
+            <div class="role-selector">
+                <h3>Top</h3>
+                <div class="champion-search">
+                    <input type="text" class="search-input" id="top-search" placeholder="Search champion...">
+                    <div class="search-results" id="top-results"></div>
+                </div>
+            </div>
+            <!-- Repeat similar blocks for jungle, mid, adc, support -->
+            <!-- Jungle -->
+            <div class="role-selector">
+                <h3>Jungle</h3>
+                <div class="champion-search">
+                    <input type="text" class="search-input" id="jungle-search" placeholder="Search champion...">
+                    <div class="search-results" id="jungle-results"></div>
+                </div>
+            </div>
+            <!-- Mid -->
+            <div class="role-selector">
+                <h3>Mid</h3>
+                <div class="champion-search">
+                    <input type="text" class="search-input" id="mid-search" placeholder="Search champion...">
+                    <div class="search-results" id="mid-results"></div>
+                </div>
+            </div>
+            <!-- ADC -->
+            <div class="role-selector">
+                <h3>ADC</h3>
+                <div class="champion-search">
+                    <input type="text" class="search-input" id="adc-search" placeholder="Search champion...">
+                    <div class="search-results" id="adc-results"></div>
+                </div>
+            </div>
+            <!-- Support -->
+            <div class="role-selector">
+                <h3>Support</h3>
+                <div class="champion-search">
+                    <input type="text" class="search-input" id="support-search" placeholder="Search champion...">
+                    <div class="search-results" id="support-results"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="button-container">
+                <select class="region-select" id="regionSelect" onchange="changeRegion()">
+                    <option value="KR">Korea (KR)</option>
+                    <option value="NA">North America (NA)</option>
+                    <option value="EUW">Europe West (EUW)</option>
+                </select>
+                <button onclick="submitTeam()">Generate Counter Draft</button>
+                <div class="win-probability" id="winProbability"></div>
+            </div>
+        </div>
+
+        <div class="team-section" id="result">
+            <h2>Generated Team</h2>
+            <!-- Generated team will appear here -->
+        </div>
+    </div>
+
+    <script>
+        const champions = {{ all_champions | tojson | safe }};
+        function getChampionIcon(championName) {
+            // Special cases mapping
+            const specialNames = {
+                "Kai'Sa": "Kaisa",
+                "K'Sante": "KSante",
+                "Kha'Zix": "Khazix",
+                "Vel'Koz": "Velkoz",
+                "Rek'Sai": "RekSai",
+                "Cho'Gath": "Chogath",
+                "Kog'Maw": "KogMaw",
+                "Bel'Veth": "Belveth",
+                "LeBlanc": "Leblanc",
+                "Ambessa": "Ambessa",
+                "Aurora": "Aurora",
+            };
+        
+            // Check if it's a special case
+            const normalizedName = specialNames[championName] || championName;
+            
+            // Remove spaces and special characters but keep letters and numbers
+            const formattedName = normalizedName.replace(/[^a-zA-Z0-9]/g, '');
+            
+            return `https://ddragon.leagueoflegends.com/cdn/13.24.1/img/champion/${formattedName}.png`;
+        }
+
+        function setupSearch(inputId, resultsId) {
+            const input = document.getElementById(inputId);
+            const results = document.getElementById(resultsId);
+            const container = input.parentElement;
+
+            input.value = '';
+
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'champion-icon-container';
+
+            const defaultChampion = document.createElement('div');
+            defaultChampion.className = 'default-champion';
+            // Replace text with default champion image
+            defaultChampion.innerHTML = '<img src="https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png" alt="None">';
+            iconContainer.appendChild(defaultChampion);
+
+            const selectedDisplay = document.createElement('div');
+            selectedDisplay.className = 'selected-champion';
+            iconContainer.appendChild(selectedDisplay);
+
+            container.insertBefore(iconContainer, input);
+
+            defaultChampion.style.display = 'block';
+            selectedDisplay.style.display = 'none';
+
+            input.addEventListener('input', function () {
+                const searchTerm = this.value.toLowerCase();
+                const matchingChampions = champions.filter(champ =>
+                    champ.toLowerCase().includes(searchTerm)
+                );
+
+                results.innerHTML = '';
+                if (searchTerm.length > 0) {
+                    results.style.display = 'block';
+                    matchingChampions.forEach(champ => {
+                        const div = document.createElement('div');
+                        div.className = 'search-result-item';
+
+                        const img = document.createElement('img');
+                        img.src = getChampionIcon(champ);
+                        img.className = 'champion-icon';
+                        img.style.width = '24px';  
+                        img.style.height = '24px'; 
+                        img.style.marginRight = '8px'; 
+                        img.onerror = () => img.src = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png';
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = champ;
+                        nameSpan.style.flex = '1'; 
+
+                        div.appendChild(img);
+                        div.appendChild(nameSpan);
+
+                        div.onclick = function () {
+                            input.value = champ;
+                            results.style.display = 'none';
+                            defaultChampion.style.display = 'none';
+                            selectedDisplay.style.display = 'block';
+                            selectedDisplay.innerHTML = `<img src="${getChampionIcon(champ)}" alt="${champ}">`;
+                        };
+                        results.appendChild(div);
+                    });
+                } else {
+                    results.style.display = 'none';
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!input.contains(e.target) && !results.contains(e.target)) {
+                    results.style.display = 'none';
+                }
+            });
+        }
+
+        setupSearch('top-search', 'top-results');
+        setupSearch('jungle-search', 'jungle-results');
+        setupSearch('mid-search', 'mid-results');
+        setupSearch('adc-search', 'adc-results');
+        setupSearch('support-search', 'support-results');
+
+        function changeRegion() {
+            const selectedRegion = document.getElementById('regionSelect').value;
+            console.log('Selected region:', selectedRegion);
+        }
+
+        async function submitTeam() {
+            const team = {
+                top: document.getElementById('top-search').value || "None",
+                jungle: document.getElementById('jungle-search').value || "None",
+                mid: document.getElementById('mid-search').value || "None",
+                adc: document.getElementById('adc-search').value || "None",
+                support: document.getElementById('support-search').value || "None"
+            };
+        
+            const selectedRegion = document.getElementById('regionSelect').value;
+
+            try {
+                const response = await fetch('/generate_draft', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        team: team,
+                        region: selectedRegion
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = '<h2>Generated Team</h2>';
+                
+                // Update win probability display
+                const winProbabilityDiv = document.getElementById('winProbability');
+                const probability = (data.drafts[0].win_probability * 100).toFixed(1);
+                winProbabilityDiv.textContent = `Win Probability: ${probability}%`;
+
+                data.drafts.forEach(draft => {
+                    const draftDiv = document.createElement('div');
+                    draftDiv.className = 'draft-result';
+                    draftDiv.innerHTML = draft.generated_team.map((champ, idx) => `
+                        <div class="role-selector">
+                            <h3>${['Top', 'Jungle', 'Mid', 'ADC', 'Support'][idx]}</h3>
+                            <div class="champion-search">
+                                <div class="champion-icon-container">
+                                    <div class="selected-champion" style="display: block;">
+                                        <img src="${getChampionIcon(champ)}" alt="${champ}">
+                                    </div>
+                                </div>
+                                <div class="champion-name">${champ}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    resultDiv.appendChild(draftDiv);
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate draft.');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+
+
+body {
+    font-family: 'BeaufortforLOL', Arial, sans-serif;
+    background-color: #0A1428;
+    color: #ffffff;
+    margin: 0;
+    padding: 20px;
+}
+
+.title {
+    text-align: center;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    color: #C8AA6E;
+}
+
+.draft-container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.team-section {
+    flex: 1;
+    padding: 20px;
+    background-color: #1E2A47;
+    border-radius: 10px;
+    margin: 10px;
+    min-width: 300px;
+    border: 5px solid #C8AA6E;
+    color: #C8AA6E;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; 
+    text-align: left; 
+}
+
+.team-section h2 {
+    color: #ffffff;
+    width: 100%;
+    text-align: center; 
+}
+
+.draft-result {
+    width: 100%;
+    text-align: left;
+}
+
+.draft-result .role-selector {
+    text-align: left;
+}
+
+.draft-result .champion-name {
+    text-align: left;
+    margin-left: 10px;
+}
+
+.role-selector {
+    width: 100%;
+    text-align: left;
+}
+
+.role-selector h3 {
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.champion-search {
+    position: relative;
+    display: flex;  
+    align-items: center;  
+    gap: 30px; 
+}
+
+.search-input {
+    width: 300px;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background-color: #0A1428;
+    color: white;
+}
+
+.champion-icon-container {
+    display: flex;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+}
+
+.selected-champion {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 50%;
+    border: 1px solid #C8AA6E;
+    background: rgba(9, 20, 40, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #C8AA6E;
+    font-size: 12px;
+    text-align: center;
+}
+
+.selected-champion img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid #C8AA6E;
+    object-fit: cover;
+}
+
+.search-results {
+    position: absolute;
+    width: 300px;  
+    left: 80px;  
+    top: 100%; 
+    background-color: #1E2A47;
+    border-radius: 5px;
+    z-index: 10;
+    display: none;
+}
+
+.champion-icon-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+.selected-champion {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    border-radius: 50%;
+    border: 1px solid #C8AA6E;
+    background: rgba(9, 20, 40, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    top: 0;
+    left: 0;
+}
+
+.default-champion {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    border-radius: 50%;
+    border: 1px solid #C8AA6E;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 0;
+    left: 0;
+}
+
+.search-results div {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.search-results div:hover {
+    background-color: #324A7D;
+}
+
+.map-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 20px;
+}
+
+.button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.button-container button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #C8AA6E;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.button-container button:hover {
+    background-color: #0077B6;
+}
+
+.region-select {
+    padding: 10px;
+    background-color: #1E2A47;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.champion-icon-container {
+    display: flex;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+}
+
+.search-result-item {
+    padding: 6px;
+    border-bottom: 1px solid #17313A;
+    display: flex;
+    align-items: center;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: rgba(9, 20, 40, 0.95);
+}
+
+.search-result-item:hover {
+    background-color: rgba(200, 170, 110, 0.1);
+}
+
+.champion-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #C8AA6E;
+    margin-right: 8px;
+}
+
+.default-champion {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    border-radius: 50%;
+    border: 1px solid #C8AA6E;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.champion-name {
+    padding: 8px 12px;
+    border: 1px solid #C8AA6E;
+    border-radius: 5px;
+    background-color: rgba(9, 20, 40, 0.9);
+    margin-left: 10px;
+    color: #C8AA6E;
+    min-width: 200px;
+    text-align: center;
+}
+
+.default-champion img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.win-probability {
+    color: #C8AA6E;
+    font-size: 1.2em;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+}
