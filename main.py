@@ -15,7 +15,6 @@ from outcome_predictor_model import LogisticRegressionModel
 
 from draft_transformer_model import main as transformer_main
 from draft_transformer_model import RoleAwareTransformer
-# from predict_outcome_of_generated_draft import main as generated_outcome_main
 
 def generate_text_file_paths(region_for_leaderboard):
     return {
@@ -50,12 +49,14 @@ def run_project():
         raise ValueError("Missing riot_api_key in .env file")
 
     ""
+
+    # Choose which regions to generate a model from: below is an example of multiple regions
+    # Default is north american region
     # regions = [["na1","americas"],["kr","asia"],["euw1","europe"]]
     regions = [["na1","americas"]]
     leagues = ["challengerleagues"]
 
     for region_for_leaderboard, region_country in regions:
-        # Shared config
         config = {
             "riot_api_key":         riot_api_key,
             "region_country":       region_country,
@@ -101,7 +102,7 @@ def run_project():
         )
         print("Success 3")
 
-        # Used to load and use the binary classfier model
+        # Example of how to load and use the outcome predictor model
         # device = "cpu"
         # input_dim = 1710
         # model = LogisticRegressionModel(input_dim)
@@ -119,25 +120,15 @@ def run_project():
         )
         print("Success 4")
 
+        # Example of how how to load and use the draft transformer model
         # model = RoleAwareTransformer(vocab_size=vocab_size, embed_dim=embed_dim)  # Create the model first
         # model.load_state_dict(torch.load('draft_predictor_model_na_challenger.pt', map_location=device))  # Load weights
         # model.to(device)
         # model.eval()
 
         # # Example usage
-        # seed = [150, 80, 268, 110, 235, 897, 234, 4, 81, 117]  # patch + losing team (5 picks total)
-        # # seed = [777, 254, 711, 901, 40, 420, 245, 142, 221, 53]  # patch + losing team (5 picks total)
-        # # seed = [0, 0, 0, 901, 0, 420, 245, 142, 221, 53]  # patch + losing team (5 picks total)
-        # # draft = [Id_to_Champion[champ] for champ in seed]
-        # generate_multiple_drafts(model,seed,device=device,top_k_drafts=3, top_p_drafts=3, temp_drafts=1)
-
-        # # Step 5: Predict outcomes with generated drafts
-        # generated_outcome_main(
-        #     predictor_model=config["model_file_paths"]["binary_predictor_model"],
-        #     transformer_model=config["model_file_paths"]["transformer_model"],
-        #     output_file=config["generated_draft_predicted_outcomes"]"
-        # )
-        # print("Success 5")
+        # ids = [150, 80, 268, 110, 235, 897, 234, 4, 81, 117]  # patch + losing team (5 picks total)
+        # generate_multiple_drafts(model,ids,device=device,top_k_drafts=3, top_p_drafts=3, temp_drafts=1)
 
 if __name__ == "__main__":
     run_project()
