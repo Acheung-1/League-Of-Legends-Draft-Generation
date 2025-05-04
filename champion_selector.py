@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, url_for
 from champion_dictionary import Champion_to_Id, Id_to_Champion, Consecutive_Id_to_Id, Id_to_Consecutive_Id
 import torch
 from torch.utils.data import Dataset
@@ -6,56 +6,7 @@ import ast
 from draft_transformer_model import RoleAwareTransformer, generate_team
 from outcome_predictor_model import LogisticRegressionModel
 
-app = Flask(__name__)
-
-# ---------- Dataset ----------
-class DraftDataset(Dataset):
-    def __init__(self, file_path):
-        self.data = []
-        self.vocab_size = get_vocab_size()
-        with open(file_path, "r") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    team_comps = ast.literal_eval(line)
-                    team_comps = [Id_to_Consecutive_Id[int(x)] for x in team_comps]
-                    if len(team_comps) != 10:
-                        continue
-                    enemy = team_comps[:5]
-                    predicted_team = team_comps[5:]
-                    if any(champ < 0 or champ >= self.vocab_size for champ in team_comps):
-                        continue
-                    input_vec = enemy + [0]*5
-                    target_vec = predicted_team
-                    self.data.append((input_vec, target_vec))
-                except Exception as e:
-                    print(f"Skipping line due to error: {e}")
-                    continue
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        x, y = self.data[idx]
-        return torch.tensor(x, dtype=torch.long), torch.tensor(y, dtype=torch.long)
-
-def get_vocab_size():
-    return len(Id_to_Champion)
-
-def decode_champ_list(champ_ids):
-    '''
-    DESCRIPTION:
-        Takes an array of CONSECUTIVE champion IDS, and return champion name
-
-    INPUTS:
-        champ_ids (array(int)):    Array containing champions in consecutive ids for training
-
-    OUTPUTS:
-        Output (type):             Array containing champion names
-    '''
-    return [Id_to_Champion[champ_id] for champ_id in champ_ids]
+app = Flask(__name__, static_url_path='/static')
 
 def generate_multiple_drafts(model, riot_champ_ids, device, top_k_drafts=3, top_p_drafts=3, temp_drafts=1):
     '''
@@ -145,7 +96,8 @@ for predictor in outcome_predictors.values():
 @app.route('/')
 def home():
     all_champions = sorted(list(Champion_to_Id.keys()))
-    return render_template('champion_select.html', champion_roles=champion_roles, all_champions=all_champions)
+    # return render_template('champion_select.html', champion_roles=champion_roles, all_champions=all_champions)
+    return render_template('index.html', champion_roles=champion_roles, all_champions=all_champions)
 
 @app.route('/generate_draft', methods=['POST'])
 def generate_draft():
@@ -170,8 +122,8 @@ def generate_draft():
             model,
             champion_ids,
             device=device,
-            top_k_drafts=1,
-            top_p_drafts=1,
+            top_k_drafts=5,
+            top_p_drafts=5,
             temp_drafts=1
         )
         
@@ -180,9 +132,10 @@ def generate_draft():
             
         # Convert the draft data to a serializable format
         formatted_drafts = []
+        highest_probability = 0
+        highest_probability_draft = None
+        
         for method, draft_list in drafts.items():
-            highest_probability = 0
-            highest_probability_draft = None
             for draft in draft_list:
                 # Convert champion names back to IDs for prediction
                 enemy_ids = champion_ids
@@ -191,24 +144,14 @@ def generate_draft():
                 
                 # Get win probability using the outcome predictor
                 win_probability = float(outcome_predictor.predict_outcome(all_ids, device=device))
-                print(win_probability)
-        #         if win_probability > highest_probability:
-        #             highest_probability = win_probability
-        #             highest_probability_draft = {
-        #                                         'method': method,
-        #                                         'generated_team': draft,
-        #                                         'win_probability': float(win_probability)
-        #                                         }
-        # return jsonify({'drafts': highest_probability_draft})
-                formatted_draft = {
-                    'method': method,
-                    'generated_team': draft,
-                    'win_probability': float(win_probability)
-                }
-                formatted_drafts.append(formatted_draft)
+                if win_probability > highest_probability:
+                    highest_probability = win_probability
+                    highest_probability_draft = {
+                        'generated_team': draft,
+                        'win_probability': win_probability
+                    }
         
-        return jsonify({'drafts': formatted_drafts})
-        
+        return jsonify({'drafts': [highest_probability_draft]})
     except Exception as e:
         print(f"Error generating draft: {str(e)}")
         return jsonify({'error': 'Failed to generate draft'}), 500
