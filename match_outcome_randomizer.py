@@ -20,7 +20,8 @@ def read_txt_match_data(file_path):
             array = []
             for line in f:
                 line = ast.literal_eval(line)
-                array.append(line[1:])
+                if line:
+                    array.append(line[1:])
             return array
     except FileNotFoundError:
         return
