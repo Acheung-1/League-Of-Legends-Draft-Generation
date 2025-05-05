@@ -1,21 +1,22 @@
 # League-Of-Legends-Draft-Generation
 
-Note: Models were create with match data with the latest patch of 15.8
-      Models have been trained on 14000 unique matches each, collected from the past 100 matches of the top 300 challenger players 
-      main.py is used to collect/preprocess match data and train models
-      flask_website_champion_select.py serves a webpage for interacting with ML draft models
+### Notes
+- Models were created using match data from the latest patch: **15.8**  
+- Each model was trained on **14,000 unique matches**, collected from the **latest 100 matches** of the **top 300 Challenger players**  
+- `main.py`: Collects and preprocesses match data, and trains the ML models  
+- `flask_website_champion_select.py`: Serves a web page for interacting with the ML draft models  
 
 ### main.py
-- Will need access to riot_api_key, attained by going to https://developer.riotgames.com/apis
+- Will **need** access to own personal riot_api_key, attained on https://developer.riotgames.com/apis
   - Log in to Riot Account and request the 24 hour key
   - Create an .env file and paste key (EX: riot_api_key="KEY_HERE")
 - Main script that collects and preprocesses match data and train them in outcome predictor and transformer model
 - Handles configuration for different regions (NA, KR, EUW)
 - Executes a 4-step process:
-  1. obtain_match_data.py – Fetches match data using Riot API
-  2. match_outcome_randomizer.py – Randomizes match data for training
-  3. outcome_predictor_model.py – Trains an outcome predictor model
-  4. draft_transformer_model.py – Trains a transformer model for draft generation
+  1. **obtain_match_data.py** – Fetches match data using Riot API
+  2. **match_outcome_randomizer.py** – Randomizes match data for training
+  3. **outcome_predictor_model.py** – Trains an outcome predictor model
+  4. **draft_transformer_model.py** – Trains a transformer model for draft generation
 
 ### flask_website_champion_select.py
 - Flask web application for the champion draft interface, runs on local host
