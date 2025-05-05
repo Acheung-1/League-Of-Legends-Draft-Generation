@@ -5,6 +5,7 @@
 - Each model was trained on **14,000 unique matches**, collected from the **latest 100 matches** of the **top 300 Challenger players**  
 - `main.py`: Collects and preprocesses match data, and trains the ML models  
 - `flask_website_champion_select.py`: Serves a web page for interacting with the ML draft models  
+![Demo](Demo.gif)
 
 ### main.py
 - Will **need** access to own personal riot_api_key, attained on https://developer.riotgames.com/apis
